@@ -216,17 +216,32 @@
 
     <!-- COLAB -->
     <div id="form-colab" style="display:none">
-      <div style="background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.15);border-radius:12px;padding:16px 18px;margin-bottom:20px;text-align:left">
-        <p style="font-size:.84rem;color:var(--muted);line-height:1.6">Ingresa el <strong style="color:var(--text)">código de acceso</strong> que te compartió el administrador. Cada pendiente tiene su propio código.</p>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Código de acceso del pendiente</label>
-        <div class="code-input-group">
-          <input id="colab-code-input" maxlength="8" placeholder="Ej: ZBX-A3F2" onkeydown="if(event.key==='Enter')loginColab()" oninput="this.value=this.value.toUpperCase()">
-          <button class="btn btn-primary" style="border-radius:0 7px 7px 0;padding:0 18px" onclick="loginColab()">Entrar →</button>
+      <!-- PASO 1: código -->
+      <div id="colab-step1">
+        <div style="background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.15);border-radius:12px;padding:14px 16px;margin-bottom:18px;text-align:left">
+          <p style="font-size:.83rem;color:var(--muted);line-height:1.6">Ingresa el <strong style="color:var(--text)">código de acceso</strong> que te compartió el administrador.</p>
         </div>
+        <div class="form-group">
+          <label class="form-label">Código de acceso</label>
+          <div class="code-input-group">
+            <input id="colab-code-input" maxlength="8" placeholder="Ej: ZBX-A3F2" onkeydown="if(event.key==='Enter')validarCodigo()" oninput="this.value=this.value.toUpperCase();document.getElementById('colab-error').style.display='none';document.getElementById('colab-code-input').style.borderColor=''">
+            <button class="btn btn-primary" style="border-radius:0 7px 7px 0;padding:0 18px" onclick="validarCodigo()">Siguiente →</button>
+          </div>
+        </div>
+        <div id="colab-error" style="display:none;color:var(--red);font-size:.8rem;margin-top:6px;text-align:left"></div>
       </div>
-      <div id="colab-error" style="display:none;color:var(--red);font-size:.8rem;margin-top:6px;text-align:left"></div>
+      <!-- PASO 2: seleccionar quién eres -->
+      <div id="colab-step2" style="display:none">
+        <div style="text-align:left;margin-bottom:16px">
+          <div style="font-size:.82rem;color:var(--accent);margin-bottom:4px">✓ Código válido</div>
+          <div style="font-weight:600;font-size:.95rem" id="colab-task-preview"></div>
+        </div>
+        <div class="form-group" style="text-align:left">
+          <label class="form-label">¿Quién eres?</label>
+          <div id="colab-name-chips" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="resetColabStep()">← Cambiar código</button>
+      </div>
     </div>
   </div>
 </div>
@@ -296,7 +311,10 @@
 <div id="screen-colab" class="screen">
   <div class="topbar">
     <div class="logo">Zubex<span>·</span></div>
-    <span class="badge gris" id="colab-role-badge">Colaborador</span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar" id="colab-avatar" style="width:28px;height:28px;font-size:.7rem"></div>
+      <span style="font-size:.88rem" id="colab-name-display"></span>
+    </div>
   </div>
   <div class="colab-container">
     <div class="colab-badge">🔗 Acceso de colaborador · Solo este pendiente</div>
@@ -319,10 +337,6 @@
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:17px">
       <div style="font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:14px">📝 Publicar actualización</div>
-      <div class="form-group">
-        <label class="form-label">Tu nombre</label>
-        <input class="form-input" id="cv-author" placeholder="Nombre completo">
-      </div>
       <div class="form-group">
         <label class="form-label">Comentario / avance</label>
         <textarea class="form-textarea" id="cv-comment" placeholder="Describe el avance, problema o nota..."></textarea>
@@ -529,10 +543,10 @@ function loginAdmin() {
   renderDashboard(); renderTaskRows(); renderColabRows();
 }
 
-function loginColab() {
+function validarCodigo() {
   const code = document.getElementById('colab-code-input').value.trim().toUpperCase();
   const errEl = document.getElementById('colab-error');
-  if (!code) { errEl.textContent='Ingresa el código de acceso.'; errEl.style.display='block'; return; }
+  if (!code) { errEl.textContent='Ingresa el código.'; errEl.style.display='block'; return; }
   const task = state.tasks.find(t => t.code === code);
   if (!task) {
     errEl.textContent='Código inválido. Verifica con el administrador.';
@@ -540,10 +554,56 @@ function loginColab() {
     document.getElementById('colab-code-input').style.borderColor='var(--red)';
     return;
   }
+  // Mostrar paso 2
+  document.getElementById('colab-step1').style.display='none';
+  document.getElementById('colab-step2').style.display='block';
+  document.getElementById('colab-task-preview').textContent=task.name;
+
+  // Chips de colaboradores asignados + opción libre
+  const assigned = (task.collabs||[]).map(id=>state.collaborators.find(c=>c.id===id)).filter(Boolean);
+  const chips = document.getElementById('colab-name-chips');
+  chips.innerHTML = assigned.map(c=>`
+    <button class="btn btn-ghost" style="justify-content:flex-start;gap:10px" onclick="loginColabAs('${task.code}','${c.name}','${c.email}')">
+      <div class="avatar" style="width:28px;height:28px;font-size:.7rem;flex-shrink:0">${ini(c.name)}</div>
+      <span>${c.name}</span>
+      <span style="color:var(--muted);font-size:.78rem;margin-left:auto">${c.email}</span>
+    </button>`).join('');
+  // Opción: soy otra persona
+  chips.innerHTML += `
+    <div id="other-name-row" style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px">
+      <input class="form-input" id="other-name-input" placeholder="Otro nombre..." style="border:none;border-radius:0" onkeydown="if(event.key==='Enter')loginColabOther('${task.code}')">
+      <button class="btn btn-ghost" style="border:none;border-left:1px solid var(--border);border-radius:0;padding:0 14px;white-space:nowrap" onclick="loginColabOther('${task.code}')">Entrar →</button>
+    </div>`;
+}
+
+function loginColabAs(code, name, email) {
+  const task = state.tasks.find(t => t.code === code);
   currentTask = task;
-  currentUser = {role:'colab'};
+  currentUser = {role:'colab', name, email};
+  finishColabLogin(task, name);
+}
+
+function loginColabOther(code) {
+  const name = document.getElementById('other-name-input').value.trim();
+  if (!name) { toast('Escribe tu nombre','error'); return; }
+  const task = state.tasks.find(t => t.code === code);
+  currentTask = task;
+  currentUser = {role:'colab', name, email:''};
+  finishColabLogin(task, name);
+}
+
+function finishColabLogin(task, name) {
   showScreen('screen-colab');
+  document.getElementById('colab-name-display').textContent = name;
+  document.getElementById('colab-avatar').textContent = ini(name);
   loadColabView(task);
+}
+
+function resetColabStep() {
+  document.getElementById('colab-step1').style.display='block';
+  document.getElementById('colab-step2').style.display='none';
+  document.getElementById('colab-code-input').value='';
+  document.getElementById('colab-error').style.display='none';
 }
 
 function logout() {
@@ -593,10 +653,8 @@ function renderColabComments(task) {
 }
 
 function submitColabComment() {
-  const author = document.getElementById('cv-author').value.trim();
+  const author = currentUser.name;
   const text = document.getElementById('cv-comment').value.trim();
-  const errEl = document.getElementById('colab-error');
-  if (!author) { toast('Escribe tu nombre','error'); return; }
   if (!text && pendingImgs2.length===0) { toast('Agrega un comentario o imagen','error'); return; }
   const comment = {
     id:'cm'+Date.now(), author, date:new Date().toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}),
