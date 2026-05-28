@@ -669,6 +669,7 @@ function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
   const currentPass = (state.adminPass) || ADMIN_PASS; if (!pass || pass !== currentPass) { toast('Contraseña incorrecta','error'); return; }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Josue G.'};
+  sessionStorage.setItem('zubex-session', JSON.stringify(currentUser));
   showScreen('screen-admin');
   switchTab('pendientes'); renderColabRows();
 }
@@ -710,6 +711,7 @@ function loginColabAs(code, name, email) {
   const task = state.tasks.find(t => t.code === code);
   currentTask = task;
   currentUser = {role:'colab', name, email};
+  sessionStorage.setItem('zubex-session', JSON.stringify({role:'colab',name,email,taskCode:task.code}));
   finishColabLogin(task, name);
 }
 
@@ -731,6 +733,7 @@ function finishColabLogin(task, name) {
 
 function logoutColab() {
   currentUser = null; currentTask = null;
+  sessionStorage.removeItem('zubex-session');
   resetColabStep();
   showScreen('screen-entry');
   setMode('colab');
@@ -745,6 +748,7 @@ function resetColabStep() {
 
 function logout() {
   currentUser = null;
+  sessionStorage.removeItem('zubex-session');
   showScreen('screen-entry');
   document.getElementById('admin-pass').value = '';
 }
@@ -1371,8 +1375,32 @@ function toast(msg,type='success',dur=3200){
 }
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');});});
 
-// init
-showScreen('screen-entry');
+// init — restore session if exists
+(function(){
+  const saved = sessionStorage.getItem('zubex-session');
+  if(saved){
+    try{
+      const s = JSON.parse(saved);
+      if(s.role==='admin'){
+        currentUser = s;
+        showScreen('screen-admin');
+        switchTab('pendientes'); renderColabRows();
+      } else if(s.role==='colab' && s.taskCode){
+        const task = state.tasks.find(t=>t.code===s.taskCode);
+        if(task){
+          currentUser = s;
+          currentTask = task;
+          showScreen('screen-colab');
+          document.getElementById('colab-name-display').textContent = s.name;
+          document.getElementById('colab-avatar').textContent = ini(s.name);
+          loadColabView(task);
+        } else { showScreen('screen-entry'); }
+      } else { showScreen('screen-entry'); }
+    } catch(e){ showScreen('screen-entry'); }
+  } else {
+    showScreen('screen-entry');
+  }
+})();
 </script>
 </body>
 </html>
