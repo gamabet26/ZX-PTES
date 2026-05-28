@@ -7,10 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root{--bg:#0a0c10;--surface:#111318;--surface2:#181c24;--border:#232834;--accent:#00e5a0;--accent2:#0066ff;--warn:#ffb020;--danger:#ff4040;--text:#e8ecf0;--muted:#6b7280;--green:#00e5a0;--yellow:#ffb020;--red:#ff4040;--radius:14px;--shadow:0 4px 32px rgba(0,0,0,.5);}
+  :root{--bg:#f0f4f8;--surface:#ffffff;--surface2:#f4f7fa;--border:#dde3ea;--accent:#00b87a;--accent2:#0055dd;--warn:#e08800;--danger:#d93030;--text:#1a2130;--muted:#6b7a90;--green:#00b87a;--yellow:#e08800;--red:#d93030;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.09);}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
-  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(0,229,160,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,102,255,.06) 0%,transparent 55%);pointer-events:none;z-index:0;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(0,184,122,.05) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,85,221,.04) 0%,transparent 55%);pointer-events:none;z-index:0;}
+  /* WATERMARK */
+  .watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}
+  .watermark-zx{font-family:'Syne',sans-serif;font-weight:800;font-size:30vw;color:rgba(0,184,122,.06);letter-spacing:-.04em;line-height:1;user-select:none;animation:wzx 4s ease-in-out infinite;}
+  @keyframes wzx{0%,100%{transform:scale(.82);opacity:.6;}50%{transform:scale(1.1);opacity:1;}}
 
   /* SCREENS */
   .screen{display:none;position:relative;z-index:1;}
@@ -20,8 +24,8 @@
 
   /* LOGIN BOX */
   .login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:min(440px,94vw);text-align:center;}
-  .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;margin-bottom:4px;}
-  .login-logo span{color:var(--accent);}
+  .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;margin-bottom:4px;color:#0a2d6e;}
+  .login-logo span{color:#0a2d6e;}
   .login-sub{color:var(--muted);font-size:.88rem;margin-bottom:28px;}
   .login-tabs{display:flex;border:1px solid var(--border);border-radius:8px;margin-bottom:22px;overflow:hidden;}
   .login-tab{flex:1;padding:9px;font-size:.85rem;cursor:pointer;background:transparent;border:none;color:var(--muted);transition:.2s;font-family:'DM Sans',sans-serif;}
@@ -37,8 +41,8 @@
 
   /* TOPBAR */
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:rgba(17,19,24,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
-  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-.02em;}
-  .logo span{color:var(--accent);}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-.02em;color:#0a2d6e;}
+  .logo span{color:#0a2d6e;}
   .user-chip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);padding:8px 16px;border-radius:50px;cursor:pointer;font-size:.85rem;transition:.2s;}
   .user-chip:hover{border-color:var(--accent);}
   .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;color:#000;}
@@ -189,6 +193,7 @@
 </head>
 <body>
 
+<div class="watermark"><div class="watermark-zx">ZX</div></div>
 <!-- ══ PANTALLA ENTRADA ══ -->
 <div id="screen-entry" class="screen active">
   <div class="login-box">
@@ -203,7 +208,7 @@
     <!-- ADMIN -->
     <div id="form-admin">
       <div class="form-group" style="text-align:left">
-        <label class="form-label">Correo</label>
+        <label class="form-label">Usuario</label>
         <input class="form-input" id="admin-email" type="email" value="g.martinez@zubex.com.mx">
       </div>
       <div class="form-group" style="text-align:left">
@@ -257,27 +262,13 @@
   </div>
   <div class="view active">
     <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-      <button class="nav-tab" onclick="switchTab('pendientes')">📋 Pendientes</button>
+      <button class="nav-tab active" onclick="switchTab('pendientes')">📋 Pendientes</button>
       <button class="nav-tab" onclick="switchTab('colaboradores')">👥 Colaboradores</button>
-    </div>
-
-    <!-- DASHBOARD TAB -->
-    <div id="tab-dashboard">
-      <div class="flex-between">
-        <div><div class="section-title">Dashboard General</div><p class="section-sub">Vista consolidada del estado de tus pendientes</p></div>
-        <button class="btn btn-primary" onclick="openNewTask()">＋ Nuevo Pendiente</button>
-      </div>
-      <div class="stats-grid" id="stats-cards"></div>
-      <div class="semaforo-row" id="semaforo-row"></div>
-      <div class="charts-grid">
-        <div class="chart-card"><h4>Progreso por Pendiente</h4><canvas id="chart-progress" height="200"></canvas></div>
-        <div class="chart-card"><h4>Distribución por Estatus</h4><canvas id="chart-status" height="200"></canvas></div>
-      </div>
+      <button class="nav-tab" onclick="openChangePass()">🔑 Contraseña</button>
     </div>
 
     <!-- PENDIENTES TAB -->
-    <div id="tab-pendientes" style="display:none">
+    <div id="tab-pendientes">
       <div class="flex-between" style="margin-bottom:18px">
         <div><div class="section-title">Mis Pendientes</div><p class="section-sub" style="margin-bottom:0">Comparte el código de acceso con el colaborador asignado</p></div>
         <button class="btn btn-primary" onclick="openNewTask()">＋ Nuevo Pendiente</button>
@@ -481,6 +472,27 @@
   </div>
 </div>
 
+
+<!-- ══ MODAL: CAMBIAR CONTRASEÑA ══ -->
+<div class="overlay" id="modal-pass">
+  <div class="modal" style="width:min(400px,95vw)">
+    <div class="modal-head">
+      <div class="modal-title">🔑 Cambiar Contraseña</div>
+      <button class="close-btn" onclick="closeModal('modal-pass')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Contraseña actual</label><input class="form-input" id="cp-current" type="password" placeholder="••••••••"></div>
+      <div class="form-group"><label class="form-label">Nueva contraseña</label><input class="form-input" id="cp-new" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-group"><label class="form-label">Confirmar nueva contraseña</label><input class="form-input" id="cp-confirm" type="password" placeholder="Repite la nueva contraseña"></div>
+      <div id="cp-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeModal('modal-pass')">Cancelar</button>
+        <button class="btn btn-primary" onclick="changePass()">Guardar contraseña</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
 <div class="toast-container" id="toasts"></div>
 
@@ -488,7 +500,7 @@
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
-const ADMIN_PASS = 'admin123';
+let ADMIN_PASS = 'admin123'; // overridden by state.adminPass if set
 const ADMIN_EMAIL = 'g.martinez@zubex.com.mx';
 
 let state = loadState();
@@ -534,10 +546,10 @@ function setMode(m) {
 
 function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
-  if (!pass || pass !== ADMIN_PASS) { toast('Contraseña incorrecta','error'); return; }
+  const currentPass = (state.adminPass) || ADMIN_PASS; if (!pass || pass !== currentPass) { toast('Contraseña incorrecta','error'); return; }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Josue G.'};
   showScreen('screen-admin');
-  renderDashboard(); renderTaskRows(); renderColabRows();
+  switchTab('pendientes'); renderColabRows();
 }
 
 function validarCodigo() {
@@ -680,15 +692,35 @@ function submitColabComment() {
 // ADMIN: TABS
 // ════════════════════════════════════════
 function switchTab(tab) {
-  ['dashboard','pendientes','colaboradores'].forEach(t=>{
+  ['pendientes','colaboradores'].forEach(t=>{
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
   document.querySelectorAll('.nav-tab').forEach((b,i)=>{
-    b.classList.toggle('active',['dashboard','pendientes','colaboradores'][i]===tab);
+    b.classList.toggle('active',['pendientes','colaboradores'][i]===tab);
   });
-  if(tab==='dashboard') renderDashboard();
   if(tab==='pendientes') renderTaskRows();
   if(tab==='colaboradores') renderColabRows();
+}
+
+function openChangePass(){
+  ['cp-current','cp-new','cp-confirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cp-error').style.display='none';
+  document.getElementById('modal-pass').classList.add('open');
+}
+
+function changePass(){
+  const cur = document.getElementById('cp-current').value;
+  const nw  = document.getElementById('cp-new').value;
+  const cf  = document.getElementById('cp-confirm').value;
+  const err = document.getElementById('cp-error');
+  if(cur !== ((state.adminPass)||ADMIN_PASS)){err.textContent='La contraseña actual es incorrecta.';err.style.display='block';return;}
+  if(nw.length < 6){err.textContent='La nueva contraseña debe tener al menos 6 caracteres.';err.style.display='block';return;}
+  if(nw !== cf){err.textContent='Las contraseñas no coinciden.';err.style.display='block';return;}
+  // update in memory & storage
+  ADMIN_PASS = nw; state.adminPass = nw;
+  saveState();
+  closeModal('modal-pass');
+  toast('Contraseña actualizada ✓');
 }
 
 // ════════════════════════════════════════
@@ -816,7 +848,7 @@ function saveTaskChanges() {
   const idx=state.tasks.findIndex(t=>t.id===currentTask.id);
   state.tasks[idx].progress=pct;
   state.tasks[idx].status=pct===100?'completado':status;
-  saveState(); renderDashboard(); renderTaskRows();
+  saveState(); renderTaskRows();
   toast('Cambios guardados ✓');
   notifyEmail('admin', state.tasks[idx]);
   closeModal('modal-task');
@@ -825,7 +857,7 @@ function saveTaskChanges() {
 function deleteTask() {
   if(!confirm('¿Eliminar este pendiente?')) return;
   state.tasks=state.tasks.filter(t=>t.id!==currentTask.id);
-  saveState(); closeModal('modal-task'); renderDashboard(); renderTaskRows();
+  saveState(); closeModal('modal-task'); renderTaskRows();
   toast('Pendiente eliminado');
 }
 
@@ -910,7 +942,7 @@ function saveNewTask(){
     state.tasks.push({id:'t'+Date.now(),code:genCode(),...data});
     toast('Pendiente creado ✓');
   }
-  saveState(); closeModal('modal-new-task'); renderDashboard(); renderTaskRows();
+  saveState(); closeModal('modal-new-task'); renderTaskRows();
   editingTaskId=null;
 }
 
