@@ -11,6 +11,37 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
   body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(0,184,122,.05) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,85,221,.04) 0%,transparent 55%);pointer-events:none;z-index:0;}
+
+  /* ── CALENDAR ── */
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);}
+  .cal-wday{padding:10px 0;text-align:center;font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .cal-cells{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-cell{min-height:90px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:7px 8px;cursor:pointer;transition:.15s;position:relative;vertical-align:top;}
+  .cal-cell:hover{background:rgba(0,85,221,.04);}
+  .cal-cell.today{background:rgba(0,184,122,.06);}
+  .cal-cell.today .cal-day-num{background:#0a2d6e;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+  .cal-cell.other-month .cal-day-num{color:#c5cdd6;}
+  .cal-cell.selected{background:rgba(0,85,221,.08);outline:2px solid #0055dd;}
+  .cal-cell.blocked{background:repeating-linear-gradient(45deg,rgba(231,76,60,.04),rgba(231,76,60,.04) 4px,transparent 4px,transparent 10px);}
+  .cal-day-num{font-size:.85rem;font-weight:600;margin-bottom:5px;color:var(--text);width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+  .cal-chip{font-size:.68rem;border-radius:4px;padding:2px 6px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;cursor:pointer;line-height:1.4;}
+  .cal-chip.pte{background:rgba(0,85,221,.12);color:#0055dd;}
+  .cal-chip.comp{background:rgba(0,184,122,.12);color:#00875a;}
+  .cal-chip.risk{background:rgba(224,136,0,.12);color:#a06000;}
+  .cal-chip.evt{background:rgba(155,89,182,.12);color:#7d3c98;}
+  .cal-chip.block{background:rgba(231,76,60,.1);color:#c0392b;}
+  .cal-more{font-size:.66rem;color:var(--muted);margin-top:2px;}
+  .evt-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .evt-item:last-child{border-bottom:none;}
+  .evt-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .evt-body{flex:1;}
+  .evt-title{font-weight:500;font-size:.88rem;}
+  .evt-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
+
+
+  .color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;}
+  .color-dot.selected{border-color:#1a2130;transform:scale(1.15);}
+
   /* WATERMARK */
   .watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}
   .watermark-zx{font-family:'Syne',sans-serif;font-weight:800;font-size:30vw;color:rgba(0,184,122,.06);letter-spacing:-.04em;line-height:1;user-select:none;animation:wzx 4s ease-in-out infinite;}
@@ -264,6 +295,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="switchTab('pendientes')">📋 Pendientes</button>
       <button class="nav-tab" onclick="switchTab('colaboradores')">👥 Colaboradores</button>
+      <button class="nav-tab" onclick="switchTab('calendario')">📅 Calendario</button>
       <button class="nav-tab" onclick="openChangePass()">🔑 Contraseña</button>
     </div>
 
@@ -280,6 +312,50 @@
         </div>
         <div class="task-row head"><span>Pendiente</span><span>Colaboradores</span><span>Vencimiento</span><span>Progreso</span><span>Estatus</span><span>Código acceso</span></div>
         <div id="task-rows"></div>
+      </div>
+    </div>
+
+
+    <!-- CALENDARIO TAB -->
+    <div id="tab-calendario" style="display:none">
+      <div class="flex-between" style="margin-bottom:20px">
+        <div><div class="section-title">Calendario</div><p class="section-sub" style="margin-bottom:0">Agenda de pendientes y eventos personales</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" onclick="calNav(-1)">← Anterior</button>
+          <button class="btn btn-ghost" onclick="calToday()">Hoy</button>
+          <button class="btn btn-ghost" onclick="calNav(1)">Siguiente →</button>
+          <button class="btn btn-primary" onclick="openNewEvent()">＋ Evento</button>
+        </div>
+      </div>
+
+      <!-- MES HEADER -->
+      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+        <div id="cal-month-label" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:#0a2d6e"></div>
+      </div>
+
+      <!-- LEYENDA -->
+      <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;font-size:.78rem;align-items:center">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#0055dd;display:inline-block"></span>Pendiente vencimiento</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#00b87a;display:inline-block"></span>Completado</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#e08800;display:inline-block"></span>En riesgo</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#9b59b6;display:inline-block"></span>Evento personal</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#e74c3c;display:inline-block"></span>Día bloqueado</span>
+      </div>
+
+      <!-- GRID CALENDARIO -->
+      <div class="card" style="overflow:visible">
+        <div id="cal-grid"></div>
+      </div>
+
+      <!-- PANEL LATERAL: eventos del día seleccionado -->
+      <div id="cal-day-panel" style="display:none;margin-top:20px">
+        <div class="card">
+          <div class="card-head">
+            <h3 id="cal-day-title">Eventos del día</h3>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cal-day-panel').style.display='none'">✕</button>
+          </div>
+          <div id="cal-day-events" style="padding:14px 20px"></div>
+        </div>
       </div>
     </div>
 
@@ -494,6 +570,50 @@
 </div>
 
 
+
+<!-- ══ MODAL: NUEVO EVENTO CALENDARIO ══ -->
+<div class="overlay" id="modal-event">
+  <div class="modal" style="width:min(460px,95vw)">
+    <div class="modal-head">
+      <div class="modal-title" id="event-modal-title">Nuevo Evento</div>
+      <button class="close-btn" onclick="closeModal('modal-event')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Tipo de evento</label>
+        <select class="form-select" id="ev-type" onchange="toggleBlockFields()">
+          <option value="personal">📌 Evento personal</option>
+          <option value="blocked">🚫 Bloquear día(s)</option>
+          <option value="reminder">🔔 Recordatorio</option>
+          <option value="meeting">🤝 Reunión</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Título</label><input class="form-input" id="ev-title" placeholder="Ej: Junta con proveedores"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" id="ev-start" type="date"></div>
+        <div class="form-group"><label class="form-label">Fecha fin (opcional)</label><input class="form-input" id="ev-end" type="date"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notas</label><textarea class="form-textarea" id="ev-notes" placeholder="Detalles adicionales..." style="min-height:60px"></textarea></div>
+      <div id="ev-color-group" class="form-group">
+        <label class="form-label">Color</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <div class="color-dot" data-color="#9b59b6" style="background:#9b59b6" onclick="selectColor(this)"></div>
+          <div class="color-dot" data-color="#e74c3c" style="background:#e74c3c" onclick="selectColor(this)"></div>
+          <div class="color-dot" data-color="#e08800" style="background:#e08800" onclick="selectColor(this)"></div>
+          <div class="color-dot" data-color="#0055dd" style="background:#0055dd" onclick="selectColor(this)"></div>
+          <div class="color-dot" data-color="#00b87a" style="background:#00b87a" onclick="selectColor(this)"></div>
+          <div class="color-dot" data-color="#e67e22" style="background:#e67e22" onclick="selectColor(this)"></div>
+        </div>
+      </div>
+      <div id="ev-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeModal('modal-event')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEvent()">Guardar evento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
 <div class="toast-container" id="toasts"></div>
 
@@ -692,14 +812,16 @@ function submitColabComment() {
 // ADMIN: TABS
 // ════════════════════════════════════════
 function switchTab(tab) {
-  ['pendientes','colaboradores'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  ['pendientes','colaboradores','calendario'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el) el.style.display = t===tab?'block':'none';
   });
   document.querySelectorAll('.nav-tab').forEach((b,i)=>{
-    b.classList.toggle('active',['pendientes','colaboradores'][i]===tab);
+    b.classList.toggle('active',['pendientes','colaboradores','calendario'][i]===tab);
   });
   if(tab==='pendientes') renderTaskRows();
   if(tab==='colaboradores') renderColabRows();
+  if(tab==='calendario') renderCalendar();
 }
 
 function openChangePass(){
@@ -1019,6 +1141,227 @@ function ini(name){return(name||'?').split(' ').slice(0,2).map(w=>w[0]?.toUpperC
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openLB(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+
+// ════════════════════════════════════════
+// CALENDAR
+// ════════════════════════════════════════
+let calDate = new Date();
+let calSelectedDay = null;
+let selectedColor = '#9b59b6';
+let editingEventId = null;
+
+function calNav(dir){
+  calDate = new Date(calDate.getFullYear(), calDate.getMonth()+dir, 1);
+  renderCalendar();
+}
+function calToday(){
+  calDate = new Date(); renderCalendar();
+}
+
+function renderCalendar(){
+  const today = new Date();
+  const yr = calDate.getFullYear();
+  const mo = calDate.getMonth();
+  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('cal-month-label').textContent = months[mo] + ' ' + yr;
+
+  const firstDay = new Date(yr, mo, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(yr, mo+1, 0).getDate();
+  const daysInPrev = new Date(yr, mo, 0).getDate();
+  const start = firstDay; // days from prev month to show
+
+  let html = '<div class="cal-weekdays">';
+  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d=>{ html+=`<div class="cal-wday">${d}</div>`; });
+  html += '</div><div class="cal-cells">';
+
+  const totalCells = Math.ceil((start + daysInMonth)/7)*7;
+
+  for(let i=0; i<totalCells; i++){
+    let day, thisMonth=true, cellDate;
+    if(i < start){ day=daysInPrev-(start-1-i); thisMonth=false; cellDate=new Date(yr,mo-1,day); }
+    else if(i >= start+daysInMonth){ day=i-start-daysInMonth+1; thisMonth=false; cellDate=new Date(yr,mo+1,day); }
+    else { day=i-start+1; cellDate=new Date(yr,mo,day); }
+
+    const dateStr = cellDate.toISOString().slice(0,10);
+    const isToday = dateStr===today.toISOString().slice(0,10);
+    const isSel   = dateStr===calSelectedDay;
+    const isBlocked = (state.events||[]).some(e=>e.type==='blocked' && dateStr>=e.start && dateStr<=(e.end||e.start));
+
+    let classes = 'cal-cell';
+    if(!thisMonth) classes+=' other-month';
+    if(isToday)   classes+=' today';
+    if(isSel)     classes+=' selected';
+    if(isBlocked) classes+=' blocked';
+
+    // chips: tasks due on this date
+    const tasksDue = state.tasks.filter(t=>t.due===dateStr);
+    const eventsOnDay = (state.events||[]).filter(e=>dateStr>=e.start && dateStr<=(e.end||e.start));
+
+    let chips='';
+    const maxShow=2;
+    let shown=0;
+    tasksDue.forEach(t=>{
+      if(shown>=maxShow){return;}
+      const cls = t.status==='completado'?'comp':t.status==='en-riesgo'?'risk':'pte';
+      chips+=`<div class="cal-chip ${cls}" title="${t.name}">${t.name}</div>`;
+      shown++;
+    });
+    eventsOnDay.forEach(e=>{
+      if(shown>=maxShow){return;}
+      const cls = e.type==='blocked'?'block':'evt';
+      chips+=`<div class="cal-chip ${cls}" style="background:${e.color||'#9b59b6'}22;color:${e.color||'#9b59b6'}" title="${e.title}">${e.title}</div>`;
+      shown++;
+    });
+    const extra = (tasksDue.length+eventsOnDay.length)-shown;
+    if(extra>0) chips+=`<div class="cal-more">+${extra} más</div>`;
+
+    html+=`<div class="${classes}" onclick="calDayClick('${dateStr}')">
+      <div class="cal-day-num">${day}</div>
+      ${chips}
+    </div>`;
+  }
+  html+='</div>';
+  document.getElementById('cal-grid').innerHTML=html;
+}
+
+function calDayClick(dateStr){
+  calSelectedDay=dateStr;
+  renderCalendar();
+  showDayPanel(dateStr);
+}
+
+function showDayPanel(dateStr){
+  const tasksDue = state.tasks.filter(t=>t.due===dateStr);
+  const eventsOnDay = (state.events||[]).filter(e=>dateStr>=e.start && dateStr<=(e.end||e.start));
+  const panel = document.getElementById('cal-day-panel');
+  const d = new Date(dateStr+'T12:00:00');
+  const opts = {weekday:'long',year:'numeric',month:'long',day:'numeric'};
+  document.getElementById('cal-day-title').textContent = d.toLocaleDateString('es-MX',opts);
+
+  let html='';
+  if(!tasksDue.length && !eventsOnDay.length){
+    html="<div style=\"color:var(--muted);font-size:.85rem;padding:8px 0\">Sin eventos este día. <a style=\"color:#0055dd;cursor:pointer\" onclick=\"openNewEventOn(&apos;"+dateStr+"&apos;)\">+ Agregar evento</a></div>";
+  }
+  tasksDue.forEach(t=>{
+    const color = t.status==='completado'?'#00b87a':t.status==='en-riesgo'?'#e08800':'#0055dd';
+    html+=`<div class="evt-item">
+      <div class="evt-dot" style="background:${color}"></div>
+      <div class="evt-body">
+        <div class="evt-title">${t.name}</div>
+        <div class="evt-sub">Pendiente · ${t.priority} prioridad · ${t.progress}% completado</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openTask('${t.id}')">Ver →</button>
+    </div>`;
+  });
+  eventsOnDay.forEach(e=>{
+    html+=`<div class="evt-item">
+      <div class="evt-dot" style="background:${e.color||'#9b59b6'}"></div>
+      <div class="evt-body">
+        <div class="evt-title">${e.title}</div>
+        <div class="evt-sub">${evtTypeLabel(e.type)}${e.end&&e.end!==e.start?' · Hasta '+e.end:''}${e.notes?' · '+e.notes:''}</div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="btn btn-ghost btn-sm" onclick="editEvent('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEvent('${e.id}')">🗑</button>
+      </div>
+    </div>`;
+  });
+  if(tasksDue.length||eventsOnDay.length){
+    html+=`<div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="openNewEventOn('${dateStr}')">＋ Agregar evento a este día</button></div>`;
+  }
+  document.getElementById('cal-day-events').innerHTML=html;
+  panel.style.display='block';
+}
+
+function evtTypeLabel(t){
+  return {personal:'📌 Personal',blocked:'🚫 Día bloqueado',reminder:'🔔 Recordatorio',meeting:'🤝 Reunión'}[t]||t;
+}
+
+function openNewEvent(){
+  editingEventId=null;
+  document.getElementById('event-modal-title').textContent='Nuevo Evento';
+  ['ev-title','ev-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ev-type').value='personal';
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('ev-start').value=calSelectedDay||today;
+  document.getElementById('ev-end').value='';
+  document.getElementById('ev-error').style.display='none';
+  selectedColor='#9b59b6';
+  document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('selected'));
+  document.querySelector('.color-dot[data-color="#9b59b6"]').classList.add('selected');
+  document.getElementById('modal-event').classList.add('open');
+}
+
+function openNewEventOn(dateStr){
+  openNewEvent();
+  document.getElementById('ev-start').value=dateStr;
+}
+
+function editEvent(id){
+  const e=(state.events||[]).find(x=>x.id===id);
+  if(!e) return;
+  editingEventId=id;
+  document.getElementById('event-modal-title').textContent='Editar Evento';
+  document.getElementById('ev-type').value=e.type;
+  document.getElementById('ev-title').value=e.title;
+  document.getElementById('ev-start').value=e.start;
+  document.getElementById('ev-end').value=e.end||'';
+  document.getElementById('ev-notes').value=e.notes||'';
+  document.getElementById('ev-error').style.display='none';
+  selectedColor=e.color||'#9b59b6';
+  document.querySelectorAll('.color-dot').forEach(d=>{
+    d.classList.toggle('selected', d.dataset.color===selectedColor);
+  });
+  document.getElementById('modal-event').classList.add('open');
+}
+
+function saveEvent(){
+  const title=document.getElementById('ev-title').value.trim();
+  const start=document.getElementById('ev-start').value;
+  const err=document.getElementById('ev-error');
+  if(!title){err.textContent='El título es requerido.';err.style.display='block';return;}
+  if(!start){err.textContent='Selecciona una fecha.';err.style.display='block';return;}
+  const ev={
+    id: editingEventId||('ev'+Date.now()),
+    type: document.getElementById('ev-type').value,
+    title,
+    start,
+    end: document.getElementById('ev-end').value||start,
+    notes: document.getElementById('ev-notes').value.trim(),
+    color: selectedColor
+  };
+  if(!state.events) state.events=[];
+  if(editingEventId){
+    const idx=state.events.findIndex(x=>x.id===editingEventId);
+    state.events[idx]=ev;
+  } else {
+    state.events.push(ev);
+  }
+  saveState();
+  closeModal('modal-event');
+  renderCalendar();
+  if(calSelectedDay) showDayPanel(calSelectedDay);
+  toast('Evento guardado ✓');
+  editingEventId=null;
+}
+
+function deleteEvent(id){
+  if(!confirm('¿Eliminar este evento?')) return;
+  state.events=(state.events||[]).filter(e=>e.id!==id);
+  saveState();
+  renderCalendar();
+  if(calSelectedDay) showDayPanel(calSelectedDay);
+  toast('Evento eliminado');
+}
+
+function selectColor(el){
+  document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor=el.dataset.color;
+}
+
+function toggleBlockFields(){}
 
 function toast(msg,type='success',dur=3200){
   const el=document.createElement('div');el.className=`toast ${type}`;
