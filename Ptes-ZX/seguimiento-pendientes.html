@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zubex · Seguimiento de Pendientes</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0a0c10;--surface:#111318;--surface2:#181c24;--border:#232834;
+    --accent:#00e5a0;--accent2:#0066ff;--warn:#ffb020;--danger:#ff4040;
+    --text:#e8ecf0;--muted:#6b7280;--green:#00e5a0;--yellow:#ffb020;--red:#ff4040;
+    --radius:14px;--shadow:0 4px 32px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(0,229,160,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,102,255,.06) 0%,transparent 55%);pointer-events:none;z-index:0;}
+  #app{position:relative;z-index:1;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:rgba(17,19,24,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-.02em;}
+  .logo span{color:var(--accent);}
+  .user-chip{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);padding:8px 16px;border-radius:50px;cursor:pointer;font-size:.85rem;transition:.2s;}
+  .user-chip:hover{border-color:var(--accent);}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;color:#000;}
+  .view{display:none;padding:32px;}
+  .view.active{display:block;}
+  .section-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;margin-bottom:6px;}
+  .section-sub{color:var(--muted);font-size:.9rem;margin-bottom:28px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px;position:relative;overflow:hidden;}
+  .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--accent));}
+  .stat-num{font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;line-height:1;}
+  .stat-label{color:var(--muted);font-size:.8rem;margin-top:6px;}
+  .stat-dot{width:10px;height:10px;border-radius:50%;background:var(--c,var(--accent));display:inline-block;margin-right:6px;}
+  .semaforo-row{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;}
+  .sem-item{flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.2s;}
+  .sem-item:hover{border-color:var(--c,var(--accent));transform:translateY(-2px);}
+  .sem-light{width:22px;height:22px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c);flex-shrink:0;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 8px var(--c);}50%{box-shadow:0 0 20px var(--c);}}
+  .sem-info .count{font-family:'Syne',sans-serif;font-weight:700;font-size:1.4rem;}
+  .sem-info .lbl{font-size:.78rem;color:var(--muted);}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .card-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .card-head h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;}
+  .task-row{display:grid;grid-template-columns:2fr 1fr 1fr 120px 90px 110px;gap:12px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s;}
+  .task-row:hover{background:var(--surface2);}
+  .task-row.head{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;cursor:default;}
+  .task-row.head:hover{background:none;}
+  .task-title{font-weight:500;font-size:.92rem;}
+  .task-title small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:50px;font-size:.75rem;font-weight:500;}
+  .badge.verde{background:rgba(0,229,160,.12);color:var(--green);}
+  .badge.amarillo{background:rgba(255,176,32,.12);color:var(--yellow);}
+  .badge.rojo{background:rgba(255,64,64,.12);color:var(--red);}
+  .badge.gris{background:rgba(107,114,128,.15);color:var(--muted);}
+  .mini-bar{background:var(--border);border-radius:50px;height:6px;overflow:hidden;}
+  .mini-bar-fill{height:100%;border-radius:50px;background:var(--accent);transition:.4s;}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;cursor:pointer;transition:.2s;}
+  .btn-primary{background:var(--accent);color:#000;}
+  .btn-primary:hover{background:#00ffb3;transform:translateY(-1px);}
+  .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-danger{background:rgba(255,64,64,.15);color:var(--red);border:1px solid rgba(255,64,64,.3);}
+  .btn-link{background:rgba(0,102,255,.12);color:#7ab4ff;border:1px solid rgba(0,102,255,.3);}
+  .btn-link:hover{background:rgba(0,102,255,.22);}
+  .btn-sm{padding:6px 12px;font-size:.78rem;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:min(700px,95vw);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);animation:slideUp .25s ease;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;position:sticky;top:0;background:var(--surface);z-index:1;}
+  .modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;}
+  .modal-body{padding:24px 26px;}
+  .close-btn{background:transparent;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px;}
+  .close-btn:hover{color:var(--text);background:var(--surface2);}
+  .form-group{margin-bottom:18px;}
+  .form-label{font-size:.82rem;color:var(--muted);margin-bottom:7px;display:block;}
+  .form-input,.form-select,.form-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;transition:.2s;}
+  .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--accent);}
+  .form-textarea{resize:vertical;min-height:80px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .progress-section{margin-bottom:22px;}
+  .progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:.85rem;}
+  .progress-pct{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;color:var(--accent);}
+  .progress-bar{width:100%;background:var(--border);border-radius:50px;height:10px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:50px;transition:.4s;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  input[type=range]{width:100%;margin-top:10px;accent-color:var(--accent);background:transparent;}
+  .comment-list{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+  .comment-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+  .comment-meta{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .comment-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;}
+  .comment-user{font-weight:500;font-size:.85rem;}
+  .comment-date{color:var(--muted);font-size:.75rem;margin-left:auto;}
+  .comment-text{font-size:.87rem;color:var(--text);line-height:1.55;}
+  .comment-img{max-width:100%;max-height:220px;border-radius:8px;margin-top:10px;object-fit:cover;cursor:zoom-in;}
+  .upload-zone{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:.2s;color:var(--muted);font-size:.85rem;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);color:var(--accent);}
+  .upload-zone input{display:none;}
+  .img-preview-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .img-thumb{width:70px;height:70px;border-radius:8px;object-fit:cover;border:2px solid var(--border);cursor:pointer;transition:.2s;}
+  .img-thumb:hover{border-color:var(--accent);}
+  .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:28px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;}
+  .chart-card h4{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;margin-bottom:16px;}
+  .collab-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .collab-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:50px;padding:5px 12px;font-size:.8rem;cursor:pointer;transition:.2s;}
+  .collab-chip.selected{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.08);}
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+  .login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:min(420px,92vw);text-align:center;}
+  .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;margin-bottom:4px;}
+  .login-logo span{color:var(--accent);}
+  .login-sub{color:var(--muted);font-size:.88rem;margin-bottom:32px;}
+  .toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+  .toast{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:.85rem;display:flex;align-items:center;gap:10px;min-width:260px;animation:toastIn .3s ease;box-shadow:var(--shadow);}
+  .toast.success{border-color:rgba(0,229,160,.4);}
+  .toast.error{border-color:rgba(255,64,64,.4);}
+  @keyframes toastIn{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
+  #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;align-items:center;justify-content:center;cursor:zoom-out;}
+  #lightbox.open{display:flex;}
+  #lightbox img{max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;}
+  .nav-tabs{display:flex;gap:6px;margin-bottom:28px;flex-wrap:wrap;}
+  .nav-tab{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;transition:.2s;}
+  .nav-tab:hover{color:var(--text);border-color:var(--text);}
+  .nav-tab.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;}
+  .divider{height:1px;background:var(--border);margin:20px 0;}
+  .flex-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .collabs-display{display:flex;gap:6px;flex-wrap:wrap;}
+  .collab-pill{background:rgba(0,102,255,.12);color:#7ab4ff;border:1px solid rgba(0,102,255,.25);border-radius:50px;padding:2px 10px;font-size:.75rem;}
+
+  /* LINK MODAL */
+  .link-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+  .link-url{flex:1;font-size:.8rem;color:var(--muted);word-break:break-all;font-family:monospace;}
+  .link-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);border-radius:50px;padding:4px 12px;font-size:.78rem;color:var(--accent);margin-bottom:10px;}
+
+  /* COLAB TASK VIEW */
+  #colab-task-view{min-height:100vh;display:none;flex-direction:column;}
+  .colab-header{background:var(--surface);border-bottom:1px solid var(--border);padding:20px 28px;}
+  .colab-body{padding:28px;max-width:760px;margin:0 auto;width:100%;}
+  .colab-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);border-radius:50px;padding:5px 14px;font-size:.8rem;color:var(--accent);margin-bottom:20px;}
+
+  @media(max-width:700px){
+    .view{padding:16px;}
+    .task-row{grid-template-columns:1fr 80px 60px 100px;}
+    .task-row>*:nth-child(2),.task-row>*:nth-child(3){display:none;}
+    .form-row{grid-template-columns:1fr;}
+    .topbar{padding:14px 16px;}
+    .colab-body{padding:16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ADMIN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Zubex<span>·</span></div>
+    <p class="login-sub">Sistema de Seguimiento de Pendientes</p>
+    <div class="form-group" style="text-align:left">
+      <label class="form-label">Correo del administrador</label>
+      <input class="form-input" id="admin-email" type="email" value="g.martinez@zubex.com.mx">
+    </div>
+    <div class="form-group" style="text-align:left">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" id="admin-pass" type="password" placeholder="••••••••">
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="loginAdmin()">Entrar</button>
+    <p style="margin-top:14px;font-size:.75rem;color:var(--muted)">Demo: contraseña <b style="color:var(--text)">admin123</b></p>
+  </div>
+</div>
+
+<!-- ══ COLAB TASK VIEW (link directo) ══ -->
+<div id="colab-task-view">
+  <div class="colab-header">
+    <div class="logo">Zubex<span>·</span> <span style="color:var(--muted);font-weight:400;font-size:.9rem">Actualización de Pendiente</span></div>
+  </div>
+  <div class="colab-body">
+    <div class="colab-badge">🔗 Acceso de colaborador · Solo este pendiente</div>
+    <div class="section-title" id="cv-title" style="margin-bottom:6px"></div>
+    <p style="color:var(--muted);font-size:.88rem;margin-bottom:24px" id="cv-meta"></p>
+
+    <div class="progress-section">
+      <div class="progress-label"><span>Progreso actual</span><span class="progress-pct" id="cv-pct">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="cv-fill" style="width:0%"></div></div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px" id="cv-desc-box">
+      <div class="form-label">Descripción</div>
+      <div id="cv-desc" style="font-size:.88rem;color:var(--muted);line-height:1.6"></div>
+    </div>
+
+    <div class="divider"></div>
+    <h4 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:14px">Comentarios y Actualizaciones</h4>
+    <div class="comment-list" id="cv-comments"></div>
+
+    <!-- NUEVA ACTUALIZACIÓN -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px">
+      <div class="form-label" style="font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:14px">📝 Agregar actualización</div>
+      <div class="form-group">
+        <label class="form-label">Tu nombre</label>
+        <input class="form-input" id="cv-author" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comentario / avance</label>
+        <textarea class="form-textarea" id="cv-comment" placeholder="Describe el avance, problema o nota..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Imágenes (opcional)</label>
+        <div class="upload-zone" id="cv-upload-zone" onclick="document.getElementById('cv-img-input').click()" ondragover="dragOver2(event)" ondrop="dropFile2(event)">
+          <input type="file" id="cv-img-input" accept="image/*" multiple onchange="handleImages2(this.files)">
+          📎 Arrastra imágenes o haz clic aquí
+        </div>
+        <div class="img-preview-grid" id="cv-img-previews"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="submitColabComment()">Publicar actualización ↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ADMIN ══ -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="logo">Zubex<span>·</span> Pendientes</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="badge gris">Admin</span>
+      <div class="user-chip" onclick="logout()">
+        <div class="avatar" id="user-avatar">JG</div>
+        <span id="user-name-top">Josue G.</span>
+        <span style="color:var(--muted);font-size:.75rem">↩</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="view active" id="admin-view">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="nav-tab" onclick="switchTab('pendientes')">📋 Pendientes</button>
+      <button class="nav-tab" onclick="switchTab('colaboradores')">👥 Colaboradores</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="flex-between">
+        <div><div class="section-title">Dashboard General</div><p class="section-sub">Vista consolidada de todos tus pendientes</p></div>
+        <button class="btn btn-primary" onclick="openNewTask()">＋ Nuevo Pendiente</button>
+      </div>
+      <div class="stats-grid" id="stats-cards"></div>
+      <div class="semaforo-row" id="semaforo-row"></div>
+      <div class="charts-grid">
+        <div class="chart-card"><h4>Progreso por Pendiente</h4><canvas id="chart-progress" height="200"></canvas></div>
+        <div class="chart-card"><h4>Distribución por Estatus</h4><canvas id="chart-status" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PENDIENTES -->
+    <div id="tab-pendientes" style="display:none">
+      <div class="flex-between" style="margin-bottom:20px">
+        <div><div class="section-title">Mis Pendientes</div><p class="section-sub" style="margin-bottom:0">Haz clic en uno para ver detalles o copia el link para compartir</p></div>
+        <button class="btn btn-primary" onclick="openNewTask()">＋ Nuevo Pendiente</button>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Lista de Pendientes</h3>
+          <input class="form-input" style="width:220px;padding:7px 12px" placeholder="🔍 Buscar..." oninput="filterTasks(this.value)">
+        </div>
+        <div class="task-row head"><span>Pendiente</span><span>Colaboradores</span><span>Vencimiento</span><span>Progreso</span><span>Estatus</span><span>Link colaborador</span></div>
+        <div id="task-rows"></div>
+      </div>
+    </div>
+
+    <!-- COLABORADORES -->
+    <div id="tab-colaboradores" style="display:none">
+      <div class="flex-between" style="margin-bottom:20px">
+        <div><div class="section-title">Colaboradores</div><p class="section-sub" style="margin-bottom:0">Registra a quienes compartirás los links de acceso</p></div>
+        <button class="btn btn-primary" onclick="openNewColab()">＋ Agregar Colaborador</button>
+      </div>
+      <div class="card"><div id="colab-rows" style="padding:8px 0"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VER/EDITAR TAREA (admin) -->
+<div class="overlay" id="modal-task">
+  <div class="modal" style="width:min(780px,96vw)">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="md-title"></div>
+        <div style="color:var(--muted);font-size:.82rem;margin-top:4px" id="md-meta"></div>
+      </div>
+      <button class="close-btn" onclick="closeModal('modal-task')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="progress-section">
+        <div class="progress-label"><span>Progreso del Pendiente</span><span class="progress-pct" id="pct-display">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="pct-fill" style="width:0%"></div></div>
+        <input type="range" min="0" max="100" step="5" value="0" id="pct-range" oninput="updatePct(this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-top:4px"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Descripción</label><div id="md-desc" style="font-size:.88rem;color:var(--muted);line-height:1.6"></div></div>
+        <div>
+          <div class="form-group"><label class="form-label">Colaboradores</label><div class="collabs-display" id="md-collabs"></div></div>
+          <div class="form-group"><label class="form-label">Estatus</label>
+            <select class="form-select" id="md-status" onchange="updateStatus(this.value)">
+              <option value="pendiente">🟡 Pendiente</option>
+              <option value="en-proceso">🔵 En Proceso</option>
+              <option value="en-riesgo">🔴 En Riesgo</option>
+              <option value="completado">🟢 Completado</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <h4 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:14px">Comentarios y Actualizaciones</h4>
+      <div class="comment-list" id="comment-list"></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div class="form-group"><label class="form-label">Agregar comentario</label><textarea class="form-textarea" id="new-comment-text" placeholder="Escribe una actualización..."></textarea></div>
+        <div class="form-group">
+          <label class="form-label">Adjuntar imagen (opcional)</label>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('img-upload').click()" ondragover="dragOver(event)" ondrop="dropFile(event)">
+            <input type="file" id="img-upload" accept="image/*" multiple onchange="handleImages(this.files)">
+            📎 Arrastra imágenes aquí o haz clic
+          </div>
+          <div class="img-preview-grid" id="img-previews"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="clearComment()">Cancelar</button>
+          <button class="btn btn-primary btn-sm" onclick="submitComment()">Publicar ↗</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+        <button class="btn btn-danger btn-sm" onclick="deleteTask()">🗑 Eliminar</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEditTask()">✏️ Editar</button>
+        <button class="btn btn-primary" onclick="saveTaskChanges()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO/EDITAR TAREA -->
+<div class="overlay" id="modal-new-task">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="new-task-modal-title">Nuevo Pendiente</div>
+      <button class="close-btn" onclick="closeModal('modal-new-task')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-input" id="nt-name" placeholder="Ej. Implementar módulo de reportes"></div>
+      <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="nt-desc" placeholder="Detalle del pendiente..."></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Fecha de vencimiento</label><input class="form-input" id="nt-due" type="date"></div>
+        <div class="form-group"><label class="form-label">Prioridad</label>
+          <select class="form-select" id="nt-priority">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🟡 Media</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Colaboradores asignados</label><div class="collab-chips" id="nt-collab-chips"></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-new-task')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewTask()">Guardar Pendiente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COLABORADOR -->
+<div class="overlay" id="modal-colab">
+  <div class="modal" style="width:min(460px,95vw)">
+    <div class="modal-head">
+      <div class="modal-title">Agregar Colaborador</div>
+      <button class="close-btn" onclick="closeModal('modal-colab')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="nc-name" placeholder="Nombre completo"></div>
+      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="nc-email" type="email" placeholder="colaborador@zubex.com.mx"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-colab')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveColab()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: LINK COLABORADOR -->
+<div class="overlay" id="modal-link">
+  <div class="modal" style="width:min(500px,95vw)">
+    <div class="modal-head">
+      <div class="modal-title">🔗 Link de Colaborador</div>
+      <button class="close-btn" onclick="closeModal('modal-link')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:18px">Comparte este link con el colaborador. Solo podrá ver y actualizar <strong style="color:var(--text)">este pendiente</strong>, nada más.</p>
+      <div id="link-list"></div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:12px">⚠️ El link incluye un token único por pendiente. No da acceso a otros pendientes.</p>
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-link')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const ADMIN_PASS = 'admin123';
+const ADMIN_EMAIL = 'g.martinez@zubex.com.mx';
+
+let state = loadState();
+let currentUser = null;
+let currentTask = null;
+let pendingImages = [];
+let pendingImages2 = [];
+let editingTaskId = null;
+let chartProgress = null, chartStatus = null;
+let filterQuery = '';
+
+function loadState() {
+  try { const s = localStorage.getItem('zubex-pend-v2'); if(s) return JSON.parse(s); } catch(e){}
+  return {
+    collaborators:[
+      {id:'c1',name:'Carlos Ruiz',email:'c.ruiz@zubex.com.mx'},
+      {id:'c2',name:'Sofía Torres',email:'s.torres@zubex.com.mx'},
+    ],
+    tasks:[
+      {id:'t1',token:genToken(),name:'Implementar módulo SAP B1 - Reportes',desc:'Configurar reportes de inventario en SAP Business One.',due:'2026-06-15',priority:'alta',status:'en-proceso',progress:45,collabs:['c1','c2'],comments:[
+        {id:'cm1',author:'Carlos Ruiz',email:'c.ruiz@zubex.com.mx',date:'2026-05-20 09:10',text:'Avancé con las consultas SQL base, falta conectar con Crystal Reports.',images:[]}
+      ]},
+      {id:'t2',token:genToken(),name:'App Vacaciones Firebase',desc:'Despliegue en Firebase Hosting del sistema de vacaciones.',due:'2026-06-30',priority:'media',status:'pendiente',progress:20,collabs:['c2'],comments:[]},
+      {id:'t3',token:genToken(),name:'Migración de datos proveedores',desc:'Migrar catálogo de proveedores al nuevo sistema.',due:'2026-05-25',priority:'alta',status:'en-riesgo',progress:10,collabs:['c1'],comments:[]},
+    ]
+  };
+}
+
+function saveState() { localStorage.setItem('zubex-pend-v2', JSON.stringify(state)); }
+
+function genToken() {
+  return Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10);
+}
+
+// ══════════════════════════════════════════
+// INIT: detectar si viene con token en URL
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('t');
+  if (token) {
+    // Modo colaborador por link
+    const task = state.tasks.find(t => t.token === token);
+    if (task) {
+      loadColabView(task);
+    } else {
+      document.getElementById('login-screen').innerHTML = `
+        <div class="login-box">
+          <div class="login-logo">Zubex<span>·</span></div>
+          <p style="color:var(--red);margin-top:10px">Link inválido o expirado.</p>
+        </div>`;
+      document.getElementById('login-screen').style.display='flex';
+    }
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+  }
+});
+
+// ══════════════════════════════════════════
+// COLAB VIEW (acceso por link)
+// ══════════════════════════════════════════
+function loadColabView(task) {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='none';
+  const cv = document.getElementById('colab-task-view');
+  cv.style.display='flex';
+  cv.style.flexDirection='column';
+
+  document.getElementById('cv-title').textContent = task.name;
+  document.getElementById('cv-meta').textContent = `Vencimiento: ${task.due||'Sin fecha'} · Prioridad: ${task.priority}`;
+  document.getElementById('cv-desc').textContent = task.desc||'Sin descripción.';
+  document.getElementById('cv-pct').textContent = task.progress+'%';
+  document.getElementById('cv-fill').style.width = task.progress+'%';
+
+  currentTask = task;
+  renderColabComments(task);
+}
+
+function renderColabComments(task) {
+  const list = document.getElementById('cv-comments');
+  if (!task.comments||!task.comments.length) {
+    list.innerHTML='<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">Sin comentarios aún.</div>';
+    return;
+  }
+  list.innerHTML = task.comments.map(c=>`
+    <div class="comment-item">
+      <div class="comment-meta">
+        <div class="comment-avatar">${initials(c.author)}</div>
+        <span class="comment-user">${c.author}</span>
+        <span class="comment-date">${c.date}</span>
+      </div>
+      <div class="comment-text">${c.text}</div>
+      ${(c.images||[]).map(img=>`<img class="comment-img" src="${img}" onclick="openLightbox('${img}')" alt="img">`).join('')}
+    </div>`).join('');
+}
+
+function submitColabComment() {
+  const author = document.getElementById('cv-author').value.trim();
+  const text = document.getElementById('cv-comment').value.trim();
+  if (!author) { toast('Escribe tu nombre','error'); return; }
+  if (!text && pendingImages2.length===0) { toast('Agrega un comentario o imagen','error'); return; }
+
+  const comment = {
+    id:'cm'+Date.now(), author, email:'',
+    date: new Date().toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}),
+    text, images:[...pendingImages2]
+  };
+  const idx = state.tasks.findIndex(t=>t.id===currentTask.id);
+  state.tasks[idx].comments.push(comment);
+  saveState();
+  currentTask = state.tasks[idx];
+  renderColabComments(currentTask);
+  document.getElementById('cv-comment').value='';
+  pendingImages2=[];
+  document.getElementById('cv-img-previews').innerHTML='';
+  toast('Actualización publicada ✓');
+  simulateEmail('colab-to-admin', currentTask, author);
+}
+
+function handleImages2(files) {
+  [...files].forEach(f=>{
+    if(!f.type.startsWith('image/')) return;
+    const r=new FileReader();
+    r.onload=e=>{
+      pendingImages2.push(e.target.result);
+      const img=document.createElement('img');
+      img.src=e.target.result; img.className='img-thumb';
+      img.onclick=()=>openLightbox(e.target.result);
+      document.getElementById('cv-img-previews').appendChild(img);
+    };
+    r.readAsDataURL(f);
+  });
+}
+function dragOver2(e){e.preventDefault();document.getElementById('cv-upload-zone').classList.add('drag');}
+function dropFile2(e){e.preventDefault();document.getElementById('cv-upload-zone').classList.remove('drag');handleImages2(e.dataTransfer.files);}
+
+// ══════════════════════════════════════════
+// LOGIN ADMIN
+// ══════════════════════════════════════════
+function loginAdmin() {
+  const pass = document.getElementById('admin-pass').value;
+  if (pass!==ADMIN_PASS) { toast('Contraseña incorrecta','error'); return; }
+  currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Josue G.'};
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-avatar').textContent='JG';
+  renderDashboard(); renderTaskRows(); renderColabRows();
+}
+
+function logout() {
+  currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('admin-pass').value='';
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  ['dashboard','pendientes','colaboradores'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('.nav-tab').forEach((b,i)=>b.classList.toggle('active',['dashboard','pendientes','colaboradores'][i]===tab));
+  if(tab==='dashboard') renderDashboard();
+  if(tab==='pendientes') renderTaskRows();
+  if(tab==='colaboradores') renderColabRows();
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard() {
+  const tasks=state.tasks;
+  const total=tasks.length;
+  const comp=tasks.filter(t=>t.status==='completado').length;
+  const riesgo=tasks.filter(t=>t.status==='en-riesgo').length;
+  const proceso=tasks.filter(t=>t.status==='en-proceso').length;
+  const pend=tasks.filter(t=>t.status==='pendiente').length;
+  const avg=total?Math.round(tasks.reduce((a,t)=>a+t.progress,0)/total):0;
+
+  document.getElementById('stats-cards').innerHTML=`
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-num">${total}</div><div class="stat-label"><span class="stat-dot"></span>Total Pendientes</div></div>
+    <div class="stat-card" style="--c:var(--green)"><div class="stat-num">${comp}</div><div class="stat-label"><span class="stat-dot"></span>Completados</div></div>
+    <div class="stat-card" style="--c:var(--yellow)"><div class="stat-num">${proceso}</div><div class="stat-label"><span class="stat-dot"></span>En Proceso</div></div>
+    <div class="stat-card" style="--c:var(--red)"><div class="stat-num">${riesgo}</div><div class="stat-label"><span class="stat-dot"></span>En Riesgo</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-num">${avg}%</div><div class="stat-label"><span class="stat-dot"></span>Progreso Promedio</div></div>`;
+
+  document.getElementById('semaforo-row').innerHTML=`
+    <div class="sem-item" style="--c:var(--green)" onclick="goFilter('completado')"><div class="sem-light" style="--c:var(--green)"></div><div class="sem-info"><div class="count">${comp}</div><div class="lbl">Completados</div></div></div>
+    <div class="sem-item" style="--c:var(--accent2)" onclick="goFilter('en-proceso')"><div class="sem-light" style="--c:var(--accent2)"></div><div class="sem-info"><div class="count">${proceso}</div><div class="lbl">En Proceso</div></div></div>
+    <div class="sem-item" style="--c:var(--yellow)" onclick="goFilter('pendiente')"><div class="sem-light" style="--c:var(--yellow)"></div><div class="sem-info"><div class="count">${pend}</div><div class="lbl">Pendientes</div></div></div>
+    <div class="sem-item" style="--c:var(--red)" onclick="goFilter('en-riesgo')"><div class="sem-light" style="--c:var(--red)"></div><div class="sem-info"><div class="count">${riesgo}</div><div class="lbl">En Riesgo</div></div></div>`;
+
+  setTimeout(()=>renderCharts(),50);
+}
+
+function goFilter(s){filterQuery=s;switchTab('pendientes');}
+
+function renderCharts(){
+  const tasks=state.tasks;
+  if(chartProgress) chartProgress.destroy();
+  if(chartStatus) chartStatus.destroy();
+  const ctxP=document.getElementById('chart-progress');
+  const ctxS=document.getElementById('chart-status');
+  if(!ctxP||!ctxS) return;
+  Chart.defaults.color='#6b7280'; Chart.defaults.borderColor='#232834';
+  chartProgress=new Chart(ctxP,{type:'bar',data:{
+    labels:tasks.map(t=>t.name.length>22?t.name.slice(0,22)+'…':t.name),
+    datasets:[{label:'Progreso %',data:tasks.map(t=>t.progress),
+      backgroundColor:tasks.map(t=>t.progress>=100?'rgba(0,229,160,.7)':t.progress>=50?'rgba(0,102,255,.7)':'rgba(255,176,32,.7)'),borderRadius:6}]
+  },options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,grid:{color:'#1e232e'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  const sc={completado:tasks.filter(t=>t.status==='completado').length,'en-proceso':tasks.filter(t=>t.status==='en-proceso').length,pendiente:tasks.filter(t=>t.status==='pendiente').length,'en-riesgo':tasks.filter(t=>t.status==='en-riesgo').length};
+  chartStatus=new Chart(ctxS,{type:'doughnut',data:{
+    labels:['Completado','En Proceso','Pendiente','En Riesgo'],
+    datasets:[{data:Object.values(sc),backgroundColor:['rgba(0,229,160,.8)','rgba(0,102,255,.8)','rgba(255,176,32,.8)','rgba(255,64,64,.8)'],borderWidth:2,borderColor:'#111318'}]
+  },options:{responsive:true,cutout:'68%',plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',padding:14,font:{size:12}}}}}});
+}
+
+// ══════════════════════════════════════════
+// TASK LIST
+// ══════════════════════════════════════════
+function renderTaskRows(){
+  const container=document.getElementById('task-rows');
+  let tasks=state.tasks;
+  if(filterQuery) tasks=tasks.filter(t=>t.name.toLowerCase().includes(filterQuery.toLowerCase())||t.status===filterQuery);
+  if(!tasks.length){container.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">No hay pendientes.</div>';return;}
+  container.innerHTML=tasks.map(t=>{
+    const names=(t.collabs||[]).map(id=>{const c=state.collaborators.find(x=>x.id===id);return c?`<span class="collab-pill">${c.name.split(' ')[0]}</span>`:''}).join('');
+    return `<div class="task-row" onclick="openTask('${t.id}')">
+      <div class="task-title">${t.name}<small>${priorityIcon(t.priority)} ${t.priority} prioridad</small></div>
+      <div class="collabs-display">${names||'<span style="color:var(--muted);font-size:.78rem">Sin asignar</span>'}</div>
+      <div style="font-size:.82rem;color:var(--muted)">${t.due||'—'}</div>
+      <div><div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">${t.progress}%</div><div class="mini-bar"><div class="mini-bar-fill" style="width:${t.progress}%;background:${progressColor(t.progress)}"></div></div></div>
+      <div>${statusBadge(t.status)}</div>
+      <div><button class="btn btn-link btn-sm" onclick="event.stopPropagation();showLink('${t.id}')">🔗 Copiar link</button></div>
+    </div>`;
+  }).join('');
+}
+
+function filterTasks(q){filterQuery=q;renderTaskRows();}
+
+// ══════════════════════════════════════════
+// LINK MODAL
+// ══════════════════════════════════════════
+function showLink(taskId) {
+  const task = state.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  const baseUrl = window.location.href.split('?')[0];
+  const link = `${baseUrl}?t=${task.token}`;
+  const collabNames = (task.collabs||[]).map(id=>{
+    const c=state.collaborators.find(x=>x.id===id);
+    return c?c.name:'';
+  }).filter(Boolean);
+
+  document.getElementById('link-list').innerHTML=`
+    <div style="margin-bottom:10px">
+      <div style="font-weight:600;margin-bottom:6px">${task.name}</div>
+      ${collabNames.length?`<div style="color:var(--muted);font-size:.82rem;margin-bottom:12px">Colaboradores asignados: ${collabNames.join(', ')}</div>`:''}
+    </div>
+    <div class="link-box">
+      <div class="link-url" id="task-link-url">${link}</div>
+      <button class="btn btn-primary btn-sm" onclick="copyLink('${link}')">Copiar</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted)">Quien abra este link podrá agregar comentarios e imágenes en este pendiente únicamente. <strong style="color:var(--text)">No verá ningún otro pendiente.</strong></p>`;
+  document.getElementById('modal-link').classList.add('open');
+}
+
+function copyLink(link) {
+  navigator.clipboard.writeText(link).then(()=>toast('Link copiado al portapapeles ✓')).catch(()=>{
+    // fallback
+    const el=document.createElement('textarea');el.value=link;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);
+    toast('Link copiado ✓');
+  });
+}
+
+// ══════════════════════════════════════════
+// TASK DETAIL (admin)
+// ══════════════════════════════════════════
+function openTask(id){
+  const t=state.tasks.find(x=>x.id===id);if(!t) return;
+  currentTask=t; pendingImages=[];
+  document.getElementById('img-previews').innerHTML='';
+  document.getElementById('new-comment-text').value='';
+  document.getElementById('md-title').textContent=t.name;
+  document.getElementById('md-meta').textContent=`Vencimiento: ${t.due||'Sin fecha'} · Prioridad: ${t.priority}`;
+  document.getElementById('md-desc').textContent=t.desc||'Sin descripción.';
+  const collabHTML=(t.collabs||[]).map(id=>{const c=state.collaborators.find(x=>x.id===id);return c?`<span class="collab-pill">${c.name}</span>`:''}).join('');
+  document.getElementById('md-collabs').innerHTML=collabHTML||'<span style="color:var(--muted)">Sin colaboradores</span>';
+  document.getElementById('md-status').value=t.status;
+  document.getElementById('pct-range').value=t.progress;
+  updatePct(t.progress,false);
+  renderComments();
+  document.getElementById('modal-task').classList.add('open');
+}
+
+function updatePct(val){
+  document.getElementById('pct-display').textContent=val+'%';
+  document.getElementById('pct-fill').style.width=val+'%';
+}
+function updateStatus(val){if(currentTask) currentTask.status=val;if(val==='completado'){document.getElementById('pct-range').value=100;updatePct(100);}}
+
+function saveTaskChanges(){
+  if(!currentTask) return;
+  const pct=parseInt(document.getElementById('pct-range').value);
+  const status=document.getElementById('md-status').value;
+  const idx=state.tasks.findIndex(t=>t.id===currentTask.id);
+  state.tasks[idx].progress=pct;
+  state.tasks[idx].status=pct===100?'completado':status;
+  saveState(); renderDashboard(); renderTaskRows();
+  toast('Cambios guardados ✓');
+  simulateEmail('admin',state.tasks[idx]);
+  (state.tasks[idx].collabs||[]).forEach(cid=>{const c=state.collaborators.find(x=>x.id===cid);if(c) simulateEmail('colab',state.tasks[idx],c.name,c.email);});
+  closeModal('modal-task');
+}
+
+function deleteTask(){
+  if(!confirm('¿Eliminar este pendiente?')) return;
+  state.tasks=state.tasks.filter(t=>t.id!==currentTask.id);
+  saveState(); closeModal('modal-task'); renderDashboard(); renderTaskRows();
+  toast('Pendiente eliminado');
+}
+
+function openEditTask(){
+  const t=currentTask;
+  editingTaskId=t.id;
+  document.getElementById('new-task-modal-title').textContent='Editar Pendiente';
+  document.getElementById('nt-name').value=t.name;
+  document.getElementById('nt-desc').value=t.desc||'';
+  document.getElementById('nt-due').value=t.due||'';
+  document.getElementById('nt-priority').value=t.priority||'media';
+  renderCollabChips('nt-collab-chips',t.collabs||[]);
+  document.getElementById('modal-new-task').classList.add('open');
+}
+
+// ══════════════════════════════════════════
+// COMMENTS (admin)
+// ══════════════════════════════════════════
+function renderComments(){
+  const list=document.getElementById('comment-list');
+  const comments=currentTask.comments||[];
+  if(!comments.length){list.innerHTML='<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:16px 0">Sin comentarios aún.</div>';return;}
+  list.innerHTML=comments.map(c=>`
+    <div class="comment-item">
+      <div class="comment-meta">
+        <div class="comment-avatar">${initials(c.author)}</div>
+        <span class="comment-user">${c.author}</span>
+        <span class="comment-date">${c.date}</span>
+      </div>
+      <div class="comment-text">${c.text}</div>
+      ${(c.images||[]).map(img=>`<img class="comment-img" src="${img}" onclick="openLightbox('${img}')" alt="img">`).join('')}
+    </div>`).join('');
+}
+
+function submitComment(){
+  const text=document.getElementById('new-comment-text').value.trim();
+  if(!text&&pendingImages.length===0){toast('Agrega comentario o imagen','error');return;}
+  const comment={id:'cm'+Date.now(),author:currentUser.name,email:currentUser.email,date:new Date().toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}),text,images:[...pendingImages]};
+  const idx=state.tasks.findIndex(t=>t.id===currentTask.id);
+  state.tasks[idx].comments.push(comment);
+  saveState(); currentTask=state.tasks[idx];
+  renderComments(); clearComment(); toast('Comentario publicado ✓');
+}
+
+function clearComment(){document.getElementById('new-comment-text').value='';pendingImages=[];document.getElementById('img-previews').innerHTML='';}
+
+// ══════════════════════════════════════════
+// IMAGES (admin)
+// ══════════════════════════════════════════
+function handleImages(files){
+  [...files].forEach(f=>{
+    if(!f.type.startsWith('image/')) return;
+    const r=new FileReader();
+    r.onload=e=>{pendingImages.push(e.target.result);const img=document.createElement('img');img.src=e.target.result;img.className='img-thumb';img.onclick=()=>openLightbox(e.target.result);document.getElementById('img-previews').appendChild(img);};
+    r.readAsDataURL(f);
+  });
+}
+function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('drag');}
+function dropFile(e){e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');handleImages(e.dataTransfer.files);}
+
+// ══════════════════════════════════════════
+// NEW / EDIT TASK
+// ══════════════════════════════════════════
+function openNewTask(){
+  editingTaskId=null;
+  document.getElementById('new-task-modal-title').textContent='Nuevo Pendiente';
+  ['nt-name','nt-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nt-due').value='';document.getElementById('nt-priority').value='media';
+  renderCollabChips('nt-collab-chips',[]);
+  document.getElementById('modal-new-task').classList.add('open');
+}
+
+function renderCollabChips(containerId,selected){
+  const c=document.getElementById(containerId);
+  c.innerHTML=state.collaborators.map(col=>`
+    <div class="collab-chip ${selected.includes(col.id)?'selected':''}" data-id="${col.id}" onclick="toggleChip(this)">
+      ${col.name.split(' ')[0]}<span style="margin-left:3px">${selected.includes(col.id)?'✓':''}</span>
+    </div>`).join('');
+}
+
+function toggleChip(el){el.classList.toggle('selected');el.querySelector('span').textContent=el.classList.contains('selected')?'✓':'';}
+function getSelectedCollabs(cid){return [...document.querySelectorAll(`#${cid} .collab-chip.selected`)].map(el=>el.dataset.id);}
+
+function saveNewTask(){
+  const name=document.getElementById('nt-name').value.trim();
+  if(!name){toast('El nombre es requerido','error');return;}
+  const collabs=getSelectedCollabs('nt-collab-chips');
+  const taskData={name,desc:document.getElementById('nt-desc').value.trim(),due:document.getElementById('nt-due').value,priority:document.getElementById('nt-priority').value,status:'pendiente',progress:0,collabs,comments:[]};
+  if(editingTaskId){
+    const idx=state.tasks.findIndex(t=>t.id===editingTaskId);
+    state.tasks[idx]={...state.tasks[idx],...taskData};
+    toast('Pendiente actualizado ✓');
+  } else {
+    state.tasks.push({id:'t'+Date.now(),token:genToken(),...taskData});
+    toast('Pendiente creado ✓');
+  }
+  saveState(); closeModal('modal-new-task'); renderDashboard(); renderTaskRows();
+  editingTaskId=null;
+}
+
+// ══════════════════════════════════════════
+// COLABORADORES
+// ══════════════════════════════════════════
+function renderColabRows(){
+  const c=document.getElementById('colab-rows');
+  if(!state.collaborators.length){c.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">No hay colaboradores.</div>';return;}
+  c.innerHTML=state.collaborators.map(col=>{
+    const n=state.tasks.filter(t=>(t.collabs||[]).includes(col.id)).length;
+    return `<div style="display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--border)">
+      <div class="avatar" style="width:38px;height:38px;font-size:.85rem">${initials(col.name)}</div>
+      <div style="flex:1"><div style="font-weight:500">${col.name}</div><div style="font-size:.8rem;color:var(--muted)">${col.email}</div></div>
+      <span class="badge gris">${n} pendiente${n!==1?'s':''}</span>
+      <button class="btn btn-danger btn-sm" onclick="deleteColab('${col.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function openNewColab(){document.getElementById('modal-colab').classList.add('open');}
+
+function saveColab(){
+  const name=document.getElementById('nc-name').value.trim();
+  const email=document.getElementById('nc-email').value.trim();
+  if(!name||!email){toast('Completa nombre y correo','error');return;}
+  state.collaborators.push({id:'c'+Date.now(),name,email});
+  saveState(); closeModal('modal-colab'); renderColabRows();
+  ['nc-name','nc-email'].forEach(id=>document.getElementById(id).value='');
+  toast(`${name} agregado ✓`);
+}
+
+function deleteColab(id){
+  if(!confirm('¿Eliminar colaborador?')) return;
+  state.collaborators=state.collaborators.filter(c=>c.id!==id);
+  state.tasks.forEach(t=>t.collabs=t.collabs.filter(c=>c!==id));
+  saveState(); renderColabRows(); toast('Colaborador eliminado');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function statusBadge(s){const m={'completado':'<span class="badge verde">● Completado</span>','en-proceso':'<span class="badge" style="background:rgba(0,102,255,.12);color:#7ab4ff">● En Proceso</span>','pendiente':'<span class="badge amarillo">● Pendiente</span>','en-riesgo':'<span class="badge rojo">● En Riesgo</span>'};return m[s]||s;}
+function priorityIcon(p){return{alta:'🔴',media:'🟡',baja:'🟢'}[p]||'';}
+function progressColor(p){return p>=100?'var(--green)':p>=50?'var(--accent2)':'var(--yellow)';}
+function initials(name){return name.split(' ').slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+function simulateEmail(type,task,name,email){
+  let msg='';
+  if(type==='admin') msg=`📧 Notificación → ${ADMIN_EMAIL}: "${task.name}" actualizado al ${task.progress}%`;
+  else if(type==='colab') msg=`📧 Notificación → ${email}: actualización en "${task.name}"`;
+  else if(type==='colab-to-admin') msg=`📧 Notificación → ${ADMIN_EMAIL}: ${name} publicó en "${task.name}"`;
+  if(msg) toast(msg,'success',5000);
+}
+
+function toast(msg,type='success',duration=3500){
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span>${type==='success'?'✓':'✕'}</span>${msg}`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),duration);
+}
+
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');});
+});
+</script>
+</body>
+</html>
