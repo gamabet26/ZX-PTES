@@ -235,7 +235,7 @@
 <div id="screen-loading">
   <div class="spinner"></div>
   <div class="loading-text">Zubex · Pendientes</div>
-  <div class="loading-sub">Conectando con la base de datos...</div>
+  <div class="loading-sub" id="loading-sub">Iniciando...</div>
 </div>
 <div class="watermark"><div class="watermark-zx">ZX</div></div>
 <!-- ══ PANTALLA ENTRADA ══ -->
@@ -631,7 +631,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script>
 // ════════════════════════════════════════
 // FIREBASE CONFIG
@@ -639,14 +639,15 @@
 const firebaseConfig = {
   apiKey: "AIzaSyA79VK4ClxJgX6Mu-gC0TZanSXTiTk4DN0",
   authDomain: "pts-zx.firebaseapp.com",
+  databaseURL: "https://pts-zx-default-rtdb.firebaseio.com",
   projectId: "pts-zx",
   storageBucket: "pts-zx.firebasestorage.app",
   messagingSenderId: "615772047331",
   appId: "1:615772047331:web:0b560066759ab7cbb682d6"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const STATE_DOC = db.collection('zubex').doc('state');
+const db = firebase.database();
+const STATE_REF = db.ref('zubex/state');
 
 // ════════════════════════════════════════
 // STATE
@@ -663,6 +664,7 @@ let editingTaskId = null;
 let chartP = null, chartS = null;
 let filterQ = '';
 let unsubscribe = null; // Firestore listener
+let firestoreOK = false;
 
 function defaultState(){
   return {
@@ -671,55 +673,63 @@ function defaultState(){
 }
 
 function saveState(){
-  STATE_DOC.set(state).catch(e=>console.warn('Firestore write error:',e));
+  localStorage.setItem('zubex-v3', JSON.stringify(state));
+  if(firestoreOK){
+    STATE_REF.set(state).catch(e=>console.warn('Firebase write error:',e));
+  }
+}
+
+function loadLocalState(){
+  try{ const s=localStorage.getItem('zubex-v3'); if(s) return JSON.parse(s); }catch(e){}
+  return {collaborators:[],tasks:[],events:[]};
 }
 
 async function initFirestore(){
+  const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
   try {
-    const doc = await STATE_DOC.get();
-    if(doc.exists){
-      state = doc.data();
+    const lsub=document.getElementById('loading-sub'); if(lsub) lsub.textContent='Conectando con Firebase...';
+    // Read current state
+    const snap = await Promise.race([STATE_REF.get(), timeout]);
+    if(snap.exists()){
+      state = snap.val();
       if(!state.events) state.events=[];
       if(!state.collaborators) state.collaborators=[];
       if(!state.tasks) state.tasks=[];
     } else {
-      // First time — seed with demo data
-      state = {
-        collaborators:[],
-        tasks:[],
-        events:[]
-      };
-      await STATE_DOC.set(state);
+      state = {collaborators:[],tasks:[],events:[]};
+      await STATE_REF.set(state);
     }
     if(state.adminPass) ADMIN_PASS = state.adminPass;
-    // Real-time listener — sync state from other devices
-    unsubscribe = STATE_DOC.onSnapshot(snap=>{
-      if(snap.exists){
-        const fresh = snap.data();
-        if(!fresh) return;
-        state = fresh;
-        if(!state.events) state.events=[];
-        if(state.adminPass) ADMIN_PASS = state.adminPass;
-        // Refresh current view if admin is active
-        if(currentUser && currentUser.role==='admin'){
-          const activeTab = document.querySelector('.nav-tab.active');
-          if(activeTab){
-            const label = activeTab.textContent;
-            if(label.includes('Pendiente')) renderTaskRows();
-            else if(label.includes('Colabor')) renderColabRows();
-            else if(label.includes('Calendario')) renderCalendar();
-          }
-        }
-        // Refresh colab view if active
-        if(currentUser && currentUser.role==='colab' && currentTask){
-          const updated = (state.tasks||[]).find(t=>t.id===currentTask.id);
-          if(updated){ currentTask=updated; renderColabComments(updated); }
+    firestoreOK = true;
+    // Real-time listener
+    STATE_REF.on('value', snap=>{
+      if(!snap.exists()) return;
+      const fresh = snap.val();
+      if(!fresh) return;
+      state = fresh;
+      if(!state.events) state.events=[];
+      if(state.adminPass) ADMIN_PASS = state.adminPass;
+      if(currentUser && currentUser.role==='admin'){
+        const activeTab = document.querySelector('.nav-tab.active');
+        if(activeTab){
+          const label = activeTab.textContent;
+          if(label.includes('Pendiente')) renderTaskRows();
+          else if(label.includes('Colabor')) renderColabRows();
+          else if(label.includes('Calendario')) renderCalendar();
         }
       }
+      if(currentUser && currentUser.role==='colab' && currentTask){
+        const updated = (state.tasks||[]).find(t=>t.id===currentTask.id);
+        if(updated){ currentTask=updated; renderColabComments(updated); }
+      }
     });
+    console.log('Realtime Database conectado ✓');
   } catch(e){
-    console.error('Firestore init error:',e);
-    toast('Error al conectar con la base de datos. Verifica las reglas de Firestore.','error',7000);
+    console.warn('Firebase no disponible, usando localStorage:', e.message);
+    firestoreOK = false;
+    state = loadLocalState();
+    if(state.adminPass) ADMIN_PASS = state.adminPass;
+    if(!state.events) state.events=[];
   }
 }
 
