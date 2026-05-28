@@ -6,6 +6,8 @@
 <title>Zubex · Seguimiento de Pendientes</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root{--bg:#f0f4f8;--surface:#ffffff;--surface2:#f4f7fa;--border:#dde3ea;--accent:#00b87a;--accent2:#0055dd;--warn:#e08800;--danger:#d93030;--text:#1a2130;--muted:#6b7a90;--green:#00b87a;--yellow:#e08800;--red:#d93030;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.09);}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -41,6 +43,14 @@
 
   .color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;}
   .color-dot.selected{border-color:#1a2130;transform:scale(1.15);}
+
+
+  /* LOADING SCREEN */
+  #screen-loading{position:fixed;inset:0;background:#f0f4f8;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+  .spinner{width:44px;height:44px;border:4px solid #dde3ea;border-top-color:#0a2d6e;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-text{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:#0a2d6e;}
+  .loading-sub{font-size:.8rem;color:#6b7a90;margin-top:4px;}
 
   /* WATERMARK */
   .watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}
@@ -224,6 +234,11 @@
 </head>
 <body>
 
+<div id="screen-loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Zubex · Pendientes</div>
+  <div class="loading-sub">Conectando con la base de datos...</div>
+</div>
 <div class="watermark"><div class="watermark-zx">ZX</div></div>
 <!-- ══ PANTALLA ENTRADA ══ -->
 <div id="screen-entry" class="screen active">
@@ -619,12 +634,27 @@
 
 <script>
 // ════════════════════════════════════════
+// FIREBASE CONFIG
+// ════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyA79VK4ClxJgX6Mu-gC0TZanSXTiTk4DN0",
+  authDomain: "pts-zx.firebaseapp.com",
+  projectId: "pts-zx",
+  storageBucket: "pts-zx.firebasestorage.app",
+  messagingSenderId: "615772047331",
+  appId: "1:615772047331:web:0b560066759ab7cbb682d6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const STATE_DOC = db.collection('zubex').doc('state');
+
+// ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
-let ADMIN_PASS = 'admin123'; // overridden by state.adminPass if set
-const ADMIN_EMAIL = 'g.martinez@zubex.com.mx'; // correo admin por defecto
+let ADMIN_PASS = 'admin123';
+const ADMIN_EMAIL = 'g.martinez@zubex.com.mx';
 
-let state = loadState();
+let state = {collaborators:[], tasks:[], events:[]};
 let currentUser = null;
 let currentTask = null;
 let pendingImgs = [];
@@ -632,24 +662,66 @@ let pendingImgs2 = [];
 let editingTaskId = null;
 let chartP = null, chartS = null;
 let filterQ = '';
+let unsubscribe = null; // Firestore listener
 
-function loadState() {
-  try { const s = localStorage.getItem('zubex-v3'); if(s) return JSON.parse(s); } catch(e){}
+function defaultState(){
   return {
-    collaborators:[
-      {id:'c1',name:'Carlos Ruiz',email:'c.ruiz@zubex.com.mx'},
-      {id:'c2',name:'Sofía Torres',email:'s.torres@zubex.com.mx'},
-    ],
-    tasks:[
-      {id:'t1',code:'ZBX-A1B2',name:'Implementar módulo SAP B1 - Reportes',desc:'Configurar reportes de inventario en SAP Business One.',due:'2026-06-15',priority:'alta',status:'en-proceso',progress:45,collabs:['c1','c2'],comments:[
-        {id:'cm1',author:'Carlos Ruiz',date:'20/05/26, 9:10',text:'Avancé con las consultas SQL base. Falta Crystal Reports.',images:[]}
-      ]},
-      {id:'t2',code:'ZBX-C3D4',name:'App Vacaciones Firebase',desc:'Despliegue en Firebase Hosting del sistema de vacaciones.',due:'2026-06-30',priority:'media',status:'pendiente',progress:20,collabs:['c2'],comments:[]},
-      {id:'t3',code:'ZBX-E5F6',name:'Migración de datos proveedores',desc:'Migrar catálogo de proveedores al nuevo sistema.',due:'2026-05-25',priority:'alta',status:'en-riesgo',progress:10,collabs:['c1'],comments:[]},
-    ]
+    collaborators:[], tasks:[], events:[], adminPass:null
   };
 }
-function saveState(){ localStorage.setItem('zubex-v3', JSON.stringify(state)); }
+
+function saveState(){
+  STATE_DOC.set(state).catch(e=>console.warn('Firestore write error:',e));
+}
+
+async function initFirestore(){
+  try {
+    const doc = await STATE_DOC.get();
+    if(doc.exists){
+      state = doc.data();
+      if(!state.events) state.events=[];
+      if(!state.collaborators) state.collaborators=[];
+      if(!state.tasks) state.tasks=[];
+    } else {
+      // First time — seed with demo data
+      state = {
+        collaborators:[],
+        tasks:[],
+        events:[]
+      };
+      await STATE_DOC.set(state);
+    }
+    if(state.adminPass) ADMIN_PASS = state.adminPass;
+    // Real-time listener — sync state from other devices
+    unsubscribe = STATE_DOC.onSnapshot(snap=>{
+      if(snap.exists){
+        const fresh = snap.data();
+        if(!fresh) return;
+        state = fresh;
+        if(!state.events) state.events=[];
+        if(state.adminPass) ADMIN_PASS = state.adminPass;
+        // Refresh current view if admin is active
+        if(currentUser && currentUser.role==='admin'){
+          const activeTab = document.querySelector('.nav-tab.active');
+          if(activeTab){
+            const label = activeTab.textContent;
+            if(label.includes('Pendiente')) renderTaskRows();
+            else if(label.includes('Colabor')) renderColabRows();
+            else if(label.includes('Calendario')) renderCalendar();
+          }
+        }
+        // Refresh colab view if active
+        if(currentUser && currentUser.role==='colab' && currentTask){
+          const updated = (state.tasks||[]).find(t=>t.id===currentTask.id);
+          if(updated){ currentTask=updated; renderColabComments(updated); }
+        }
+      }
+    });
+  } catch(e){
+    console.error('Firestore init error:',e);
+    toast('Error al conectar con la base de datos. Verifica las reglas de Firestore.','error',7000);
+  }
+}
 
 // ════════════════════════════════════════
 // ENTRY SCREEN
@@ -1375,8 +1447,12 @@ function toast(msg,type='success',dur=3200){
 }
 document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');});});
 
-// init — restore session if exists
-(function(){
+// init — load Firestore then restore session
+(async function(){
+  await initFirestore();
+  // Hide loading screen
+  document.getElementById('screen-loading').style.display='none';
+
   const saved = sessionStorage.getItem('zubex-session');
   if(saved){
     try{
@@ -1386,7 +1462,7 @@ document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>
         showScreen('screen-admin');
         switchTab('pendientes'); renderColabRows();
       } else if(s.role==='colab' && s.taskCode){
-        const task = state.tasks.find(t=>t.code===s.taskCode);
+        const task = (state.tasks||[]).find(t=>t.code===s.taskCode);
         if(task){
           currentUser = s;
           currentTask = task;
