@@ -6,16 +6,11 @@
 <title>Zubex · Seguimiento de Pendientes</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{--bg:#f0f4f8;--surface:#ffffff;--surface2:#f4f7fa;--border:#dde3ea;--accent:#00b87a;--accent2:#0055dd;--warn:#e08800;--danger:#d93030;--text:#1a2130;--muted:#6b7a90;--green:#00b87a;--yellow:#e08800;--red:#d93030;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.09);}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
   body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(0,184,122,.05) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(0,85,221,.04) 0%,transparent 55%);pointer-events:none;z-index:0;}
-  /* EMAILJS SETUP BANNER */
-  .ejs-banner{background:#fff8e1;border-bottom:2px solid #e08800;padding:10px 20px;display:flex;align-items:center;gap:12px;font-size:.83rem;position:sticky;top:0;z-index:200;}
-  .ejs-banner a{color:#0055dd;font-weight:600;text-decoration:underline;cursor:pointer;}
-  .ejs-banner .ejs-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.1rem;}
   /* WATERMARK */
   .watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;}
   .watermark-zx{font-family:'Syne',sans-serif;font-weight:800;font-size:30vw;color:rgba(0,184,122,.06);letter-spacing:-.04em;line-height:1;user-select:none;animation:wzx 4s ease-in-out infinite;}
@@ -221,7 +216,7 @@
         <input class="form-input" id="admin-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginAdmin()">
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="loginAdmin()">Entrar</button>
-      <p style="margin-top:12px;font-size:.73rem;color:var(--muted)">Demo: <b style="color:var(--text)">admin123</b></p>
+      
     </div>
 
     <!-- COLAB -->
@@ -265,16 +260,11 @@
       <button class="btn btn-ghost btn-sm" onclick="logout()">Cerrar sesión ↩</button>
     </div>
   </div>
-  <div id="ejs-setup-banner" class="ejs-banner" style="display:none">
-    ⚠️ <strong>Correos no configurados.</strong> Para enviar notificaciones reales, <a onclick="openEjsConfig()">configura EmailJS aquí</a>.
-    <button class="ejs-close" onclick="document.getElementById('ejs-setup-banner').style.display='none'">✕</button>
-  </div>
   <div class="view active">
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="switchTab('pendientes')">📋 Pendientes</button>
       <button class="nav-tab" onclick="switchTab('colaboradores')">👥 Colaboradores</button>
       <button class="nav-tab" onclick="openChangePass()">🔑 Contraseña</button>
-      <button class="nav-tab" onclick="openEjsConfig()">📧 Correos</button>
     </div>
 
     <!-- PENDIENTES TAB -->
@@ -504,43 +494,6 @@
 </div>
 
 
-<!-- ══ MODAL: CONFIGURAR EMAILJS ══ -->
-<div class="overlay" id="modal-ejs">
-  <div class="modal" style="width:min(540px,95vw)">
-    <div class="modal-head">
-      <div>
-        <div class="modal-title">📧 Configurar Envío de Correos</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:3px">Usa EmailJS (gratis, 200 correos/mes)</div>
-      </div>
-      <button class="close-btn" onclick="closeModal('modal-ejs')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div style="background:#f0f7ff;border:1px solid #bdd4f5;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:.83rem;line-height:1.7;color:#1a2130">
-        <strong>Pasos para activar los correos:</strong><br>
-        1. Ve a <a href="https://www.emailjs.com" target="_blank" style="color:#0055dd">emailjs.com</a> y crea una cuenta gratuita<br>
-        2. Agrega un <strong>Email Service</strong> (Gmail, Outlook, etc.) → copia el <em>Service ID</em><br>
-        3. Crea un <strong>Email Template</strong> con variables: <code style="background:#e8f0fe;padding:1px 5px;border-radius:4px">{{to_email}}</code> <code style="background:#e8f0fe;padding:1px 5px;border-radius:4px">{{to_name}}</code> <code style="background:#e8f0fe;padding:1px 5px;border-radius:4px">{{subject}}</code> <code style="background:#e8f0fe;padding:1px 5px;border-radius:4px">{{message}}</code> → copia el <em>Template ID</em><br>
-        4. En tu perfil copia el <strong>Public Key</strong>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Public Key</label><input class="form-input" id="ejs-pubkey" placeholder="Ej: user_xxxxxxxxxxxxxx"></div>
-        <div class="form-group"><label class="form-label">Service ID</label><input class="form-input" id="ejs-service" placeholder="Ej: service_xxxxxxx"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Template ID</label><input class="form-input" id="ejs-template" placeholder="Ej: template_xxxxxxx"></div>
-      <div class="form-group"><label class="form-label">Correo del Administrador (para recibir alertas)</label><input class="form-input" id="ejs-admin-email" placeholder="g.martinez@zubex.com.mx"></div>
-      <div class="form-group"><label class="form-label">URL del sitio (donde está alojado el archivo)</label><input class="form-input" id="ejs-site-url" value="https://gamabet26.github.io/ZX-PTES/" placeholder="https://gamabet26.github.io/ZX-PTES/"></div>
-      <div style="background:#f6fff9;border:1px solid #b2ecd5;border-radius:8px;padding:10px 14px;font-size:.8rem;color:#1a2130;margin-bottom:16px">
-        ✅ Una vez guardado, los colaboradores recibirán correo al ser asignados a un pendiente, y tú recibirás alerta cuando comenten.
-      </div>
-      <div id="ejs-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:10px"></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-ghost" onclick="closeModal('modal-ejs')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveEjsConfig()">Guardar y activar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
 <div class="toast-container" id="toasts"></div>
 
@@ -596,12 +549,8 @@ function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
   const currentPass = (state.adminPass) || ADMIN_PASS; if (!pass || pass !== currentPass) { toast('Contraseña incorrecta','error'); return; }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Josue G.'};
-  loadEjsConfig();
   showScreen('screen-admin');
   switchTab('pendientes'); renderColabRows();
-  if(!state.ejsConfig || !state.ejsConfig.pubKey){
-    document.getElementById('ejs-setup-banner').style.display='flex';
-  }
 }
 
 function validarCodigo() {
@@ -737,7 +686,6 @@ function submitColabComment() {
   pendingImgs2=[];
   document.getElementById('cv-img-previews').innerHTML='';
   toast('Actualización publicada ✓');
-  notifyEmail('colab-to-admin', currentTask, author);
 }
 
 // ════════════════════════════════════════
@@ -913,7 +861,6 @@ function saveTaskChanges() {
   state.tasks[idx].status=pct===100?'completado':status;
   saveState(); renderTaskRows();
   toast('Cambios guardados ✓');
-  notifyEmail('admin', state.tasks[idx]);
   closeModal('modal-task');
 }
 
@@ -1005,7 +952,6 @@ function saveNewTask(){
     const newTask = {id:'t'+Date.now(),code:genCode(),...data};
     state.tasks.push(newTask);
     toast('Pendiente creado ✓');
-    notifyEmail('new-task', newTask);
   }
   saveState(); closeModal('modal-new-task'); renderTaskRows();
   editingTaskId=null;
@@ -1073,110 +1019,6 @@ function ini(name){return(name||'?').split(' ').slice(0,2).map(w=>w[0]?.toUpperC
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function openLB(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
-// ════════════════════════════════════════
-// EMAILJS
-// ════════════════════════════════════════
-function loadEjsConfig(){
-  const cfg = state.ejsConfig;
-  if(cfg && cfg.pubKey && cfg.serviceId && cfg.templateId){
-    emailjs.init(cfg.pubKey);
-    return true;
-  }
-  return false;
-}
-
-function openEjsConfig(){
-  const cfg = state.ejsConfig || {};
-  document.getElementById('ejs-pubkey').value   = cfg.pubKey    || '';
-  document.getElementById('ejs-service').value  = cfg.serviceId || '';
-  document.getElementById('ejs-template').value = cfg.templateId|| '';
-  document.getElementById('ejs-admin-email').value = cfg.adminEmail || ADMIN_EMAIL;
-  document.getElementById('ejs-site-url').value = cfg.siteUrl || 'https://gamabet26.github.io/ZX-PTES/';
-  document.getElementById('ejs-error').style.display='none';
-  document.getElementById('modal-ejs').classList.add('open');
-}
-
-function saveEjsConfig(){
-  const pubKey    = document.getElementById('ejs-pubkey').value.trim();
-  const serviceId = document.getElementById('ejs-service').value.trim();
-  const templateId= document.getElementById('ejs-template').value.trim();
-  const adminEmail= document.getElementById('ejs-admin-email').value.trim();
-  const siteUrl   = document.getElementById('ejs-site-url').value.trim();
-  const err = document.getElementById('ejs-error');
-  if(!pubKey||!serviceId||!templateId||!adminEmail||!siteUrl){
-    err.textContent='Completa todos los campos, incluyendo la URL del sitio.'; err.style.display='block'; return;
-  }
-  state.ejsConfig = {pubKey, serviceId, templateId, adminEmail, siteUrl};
-  saveState();
-  emailjs.init(pubKey);
-  closeModal('modal-ejs');
-  document.getElementById('ejs-setup-banner').style.display='none';
-  toast('✅ Correos activados. Enviando correo de prueba...');
-  // Test send
-  sendEmail(adminEmail,'Administrador','✅ EmailJS configurado - Zubex Pendientes',
-    'La integración de correos en Zubex Pendientes quedó activa correctamente.');
-}
-
-function sendEmail(toEmail, toName, subject, message){
-  if(!loadEjsConfig()) return;
-  const cfg = state.ejsConfig;
-  emailjs.send(cfg.serviceId, cfg.templateId, {
-    to_email: toEmail,
-    to_name:  toName,
-    subject:  subject,
-    message:  message
-  }).then(()=>{
-    console.log('Email enviado a '+toEmail);
-  }).catch(err=>{
-    console.warn('EmailJS error:',err);
-    toast('⚠️ Error al enviar correo: '+JSON.stringify(err.text||err),'error',5000);
-  });
-}
-
-function notifyEmail(type, task, author){
-  const ejsReady = loadEjsConfig();
-  const cfg = state.ejsConfig || {};
-  const adminMail = cfg.adminEmail || ADMIN_EMAIL;
-
-  if(type==='new-task'){
-    (task.collabs||[]).forEach(cid=>{
-      const col = state.collaborators.find(x=>x.id===cid);
-      if(!col||!col.email) return;
-      const subject = '📋 Nuevo pendiente asignado: ' + task.name;
-      const siteLink = cfg.siteUrl || '[URL no configurada]';
-      const message = 'Hola ' + col.name + ',\n\nSe te ha asignado el pendiente "' + task.name + '" en Zubex.\n\nDescripción: ' + (task.desc||'Sin descripción') + '\nVencimiento: ' + (task.due||'Sin fecha') + '\nPrioridad: ' + task.priority + '\n\nCódigo de acceso: ' + task.code + '\n\n🔗 Ingresa aquí: ' + siteLink + '\n\nAbre el enlace, selecciona "Colaborador" e ingresa tu código para ver el pendiente.';
-      if(ejsReady){
-        sendEmail(col.email, col.name, subject, message);
-        toast('📧 Correo enviado a ' + col.name + ' (' + col.email + ')','success',4000);
-      } else {
-        toast('📧 [Sin config] Para enviar correos configura EmailJS en la pestaña 📧','success',5000);
-      }
-    });
-  }
-
-  if(type==='colab-to-admin'){
-    const subject = '💬 Nueva actualización: ' + task.name;
-    const message = 'Hola,\n\n' + author + ' publicó una actualización en "' + task.name + '".\n\nProgreso: ' + task.progress + '%\nEstatus: ' + task.status + '\n\nIngresa al sistema para ver los comentarios.';
-    if(ejsReady){
-      sendEmail(adminMail, 'Administrador', subject, message);
-      toast('📧 Alerta enviada al administrador','success',4000);
-    } else {
-      toast('📧 [Sin config] Configura EmailJS para notificaciones reales','success',3500);
-    }
-  }
-
-  if(type==='admin'){
-    (task.collabs||[]).forEach(cid=>{
-      const col = state.collaborators.find(x=>x.id===cid);
-      if(!col||!col.email) return;
-      const subject = '🔄 Actualización en tu pendiente: ' + task.name;
-      const siteLink2 = cfg.siteUrl || '[URL no configurada]';
-      const message = 'Hola ' + col.name + ',\n\nEl administrador actualizó "' + task.name + '".\n\nProgreso: ' + task.progress + '%\nEstatus: ' + task.status + '\n\n🔗 Ingresa aquí: ' + siteLink2 + '\nCódigo de acceso: ' + task.code;
-      if(ejsReady) sendEmail(col.email, col.name, subject, message);
-    });
-  }
-}
-
 
 function toast(msg,type='success',dur=3200){
   const el=document.createElement('div');el.className=`toast ${type}`;
