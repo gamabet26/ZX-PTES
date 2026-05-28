@@ -6,8 +6,6 @@
 <title>Zubex · Seguimiento de Pendientes</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root{--bg:#f0f4f8;--surface:#ffffff;--surface2:#f4f7fa;--border:#dde3ea;--accent:#00b87a;--accent2:#0055dd;--warn:#e08800;--danger:#d93030;--text:#1a2130;--muted:#6b7a90;--green:#00b87a;--yellow:#e08800;--red:#d93030;--radius:14px;--shadow:0 4px 24px rgba(0,0,0,.09);}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -632,6 +630,8 @@
 <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src=""></div>
 <div class="toast-container" id="toasts"></div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script>
 // ════════════════════════════════════════
 // FIREBASE CONFIG
