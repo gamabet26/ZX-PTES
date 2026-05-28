@@ -314,6 +314,7 @@
     <div style="display:flex;align-items:center;gap:10px">
       <div class="avatar" id="colab-avatar" style="width:28px;height:28px;font-size:.7rem"></div>
       <span style="font-size:.88rem" id="colab-name-display"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logoutColab()" style="margin-left:6px">Salir ↩</button>
     </div>
   </div>
   <div class="colab-container">
@@ -597,6 +598,13 @@ function finishColabLogin(task, name) {
   document.getElementById('colab-name-display').textContent = name;
   document.getElementById('colab-avatar').textContent = ini(name);
   loadColabView(task);
+}
+
+function logoutColab() {
+  currentUser = null; currentTask = null;
+  resetColabStep();
+  showScreen('screen-entry');
+  setMode('colab');
 }
 
 function resetColabStep() {
