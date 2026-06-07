@@ -679,6 +679,14 @@ function saveState(){
   }
 }
 
+// Convert Firebase object-arrays back to real arrays
+function normalizeArr(val){
+  if(!val) return [];
+  if(Array.isArray(val)) return val.filter(x=>x!=null);
+  if(typeof val==='object') return Object.values(val).filter(x=>x!=null);
+  return [];
+}
+
 function loadLocalState(){
   try{ const s=localStorage.getItem('zubex-v3'); if(s) return JSON.parse(s); }catch(e){}
   return {collaborators:[],tasks:[],events:[]};
@@ -692,9 +700,12 @@ async function initFirestore(){
     const snap = await Promise.race([STATE_REF.get(), timeout]);
     if(snap.exists()){
       state = snap.val();
-      if(!state.events) state.events=[];
-      if(!state.collaborators) state.collaborators=[];
-      if(!state.tasks) state.tasks=[];
+      // Firebase converts arrays to objects — normalize back to arrays
+      state.tasks        = normalizeArr(state.tasks);
+      state.collaborators= normalizeArr(state.collaborators);
+      state.events       = normalizeArr(state.events);
+      // Normalize comments inside each task
+      state.tasks.forEach(t=>{ t.comments=normalizeArr(t.comments); });
     } else {
       state = {collaborators:[],tasks:[],events:[]};
       await STATE_REF.set(state);
@@ -707,7 +718,10 @@ async function initFirestore(){
       const fresh = snap.val();
       if(!fresh) return;
       state = fresh;
-      if(!state.events) state.events=[];
+      state.tasks        = normalizeArr(state.tasks);
+      state.collaborators= normalizeArr(state.collaborators);
+      state.events       = normalizeArr(state.events);
+      state.tasks.forEach(t=>{ t.comments=normalizeArr(t.comments); });
       if(state.adminPass) ADMIN_PASS = state.adminPass;
       if(currentUser && currentUser.role==='admin'){
         const activeTab = document.querySelector('.nav-tab.active');
