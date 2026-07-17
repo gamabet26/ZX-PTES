@@ -780,6 +780,18 @@ async function initFirestore(){
 // ════════════════════════════════════════
 let entryMode = 'admin';
 
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  if(el){
+    el.style.display = id === 'screen-entry' ? 'flex' : 'block';
+    el.classList.add('active');
+  }
+}
+
 function setMode(m) {
   entryMode = m;
   document.getElementById('tab-admin-btn').classList.toggle('active', m==='admin');
