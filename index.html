@@ -552,7 +552,7 @@
 <div class="overlay" id="modal-colab">
   <div class="modal" style="width:min(440px,95vw)">
     <div class="modal-head">
-      <div class="modal-title">Agregar Colaborador</div>
+      <div class="modal-title" id="colab-modal-title">Agregar Colaborador</div>
       <button class="close-btn" onclick="closeModal('modal-colab')">✕</button>
     </div>
     <div class="modal-body">
@@ -696,6 +696,7 @@ let currentTask = null;
 let pendingImgs = [];
 let pendingImgs2 = [];
 let editingTaskId = null;
+let editingColabId = null;
 let chartP = null, chartS = null;
 let filterQ = '';
 let unsubscribe = null; // Firestore listener
@@ -1297,24 +1298,66 @@ function renderColabRows(){
         <div style="font-size:.78rem;color:var(--muted)">Usuario: <strong>${c.user||'—'}</strong>${c.email?' · '+c.email:''}</div>
       </div>
       <span class="badge gris">${n} pendiente${n!==1?'s':''}</span>
+      <button class="btn btn-ghost btn-sm" onclick="editColab('${c.id}')">✏️ Editar</button>
       <button class="btn btn-danger btn-sm" onclick="delColab('${c.id}')">🗑</button>
     </div>`;
   }).join('');
 }
-function openNewColab(){document.getElementById('modal-colab').classList.add('open');}
+function openNewColab(){
+  editingColabId=null;
+  document.getElementById('colab-modal-title').textContent='Agregar Colaborador';
+  ['nc-name','nc-email','nc-user','nc-pass'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nc-pass').placeholder='Mínimo 4 caracteres';
+  document.getElementById('modal-colab').classList.add('open');
+}
+function editColab(id){
+  const col = state.collaborators.find(c=>c.id===id);
+  if(!col) return;
+  editingColabId = id;
+  document.getElementById('colab-modal-title').textContent='Editar Colaborador';
+  document.getElementById('nc-name').value  = col.name  || '';
+  document.getElementById('nc-email').value = col.email || '';
+  document.getElementById('nc-user').value  = col.user  || '';
+  document.getElementById('nc-pass').value  = '';
+  document.getElementById('nc-pass').placeholder = 'Dejar vacío para mantener la actual';
+  document.getElementById('modal-colab').classList.add('open');
+}
+
 function saveColab(){
   const name = document.getElementById('nc-name').value.trim();
   const email= document.getElementById('nc-email').value.trim();
   const user = document.getElementById('nc-user').value.trim().toLowerCase();
   const pass = document.getElementById('nc-pass').value;
-  if(!name||!user||!pass){toast('Nombre, usuario y contraseña son requeridos','error');return;}
-  if(pass.length<4){toast('La contraseña debe tener al menos 4 caracteres','error');return;}
-  const exists = state.collaborators.find(c=>c.user===user);
-  if(exists){toast('Ese nombre de usuario ya existe','error');return;}
-  state.collaborators.push({id:'c'+Date.now(),name,email,user,pass});
-  saveState(); closeModal('modal-colab'); renderColabRows();
-  ['nc-name','nc-email','nc-user','nc-pass'].forEach(id=>document.getElementById(id).value='');
-  toast(name+' agregado ✓');
+
+  if(!name||!user){toast('Nombre y usuario son requeridos','error');return;}
+
+  if(editingColabId){
+    // Editing existing collaborator
+    const idx = state.collaborators.findIndex(c=>c.id===editingColabId);
+    const col = state.collaborators[idx];
+    // Check username not taken by another
+    const dup = state.collaborators.find(c=>c.user===user && c.id!==editingColabId);
+    if(dup){toast('Ese usuario ya está en uso','error');return;}
+    if(pass && pass.length<4){toast('La contraseña debe tener al menos 4 caracteres','error');return;}
+    state.collaborators[idx] = {
+      ...col, name, email, user,
+      pass: pass ? pass : col.pass  // keep old pass if blank
+    };
+    saveState(); closeModal('modal-colab'); renderColabRows();
+    ['nc-name','nc-email','nc-user','nc-pass'].forEach(id=>document.getElementById(id).value='');
+    editingColabId=null;
+    toast(name+' actualizado ✓');
+  } else {
+    // New collaborator
+    if(!pass){toast('La contraseña es requerida','error');return;}
+    if(pass.length<4){toast('La contraseña debe tener al menos 4 caracteres','error');return;}
+    const exists = state.collaborators.find(c=>c.user===user);
+    if(exists){toast('Ese nombre de usuario ya existe','error');return;}
+    state.collaborators.push({id:'c'+Date.now(),name,email,user,pass});
+    saveState(); closeModal('modal-colab'); renderColabRows();
+    ['nc-name','nc-email','nc-user','nc-pass'].forEach(id=>document.getElementById(id).value='');
+    toast(name+' agregado ✓');
+  }
 }
 function delColab(id){
   if(!confirm('¿Eliminar colaborador?')) return;
