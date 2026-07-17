@@ -1631,6 +1631,12 @@ document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>
   // Hide loading screen
   document.getElementById('screen-loading').style.display='none';
 
+  // Clear session if this is a fresh navigation (not a reload)
+  const navType = performance.getEntriesByType('navigation')[0]?.type;
+  if(navType === 'navigate'){
+    sessionStorage.removeItem('zubex-session');
+  }
+
   const saved = sessionStorage.getItem('zubex-session');
   if(saved){
     try{
