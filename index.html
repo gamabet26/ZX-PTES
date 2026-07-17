@@ -257,8 +257,12 @@
       </div>
       <div class="form-group" style="text-align:left">
         <label class="form-label">Contraseña</label>
-        <input class="form-input" id="admin-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginAdmin()">
+        <div style="position:relative">
+          <input class="form-input" id="admin-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginAdmin()" style="padding-right:42px">
+          <button type="button" onclick="togglePass('admin-pass',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted)">👁</button>
+        </div>
       </div>
+      <div id="admin-login-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:8px;text-align:left"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="loginAdmin()">Entrar</button>
       
     </div>
@@ -271,7 +275,10 @@
       </div>
       <div class="form-group" style="text-align:left">
         <label class="form-label">Contraseña</label>
-        <input class="form-input" id="colab-pass-input" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginColab()">
+        <div style="position:relative">
+          <input class="form-input" id="colab-pass-input" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginColab()" style="padding-right:42px">
+          <button type="button" onclick="togglePass('colab-pass-input',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted)">👁</button>
+        </div>
       </div>
       <div id="colab-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:10px;text-align:left"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="loginColab()">Entrar</button>
@@ -780,6 +787,12 @@ async function initFirestore(){
 // ════════════════════════════════════════
 let entryMode = 'admin';
 
+function togglePass(id, btn){
+  const inp = document.getElementById(id);
+  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁'; }
+}
+
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
@@ -803,10 +816,13 @@ function setMode(m) {
 
 function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
-  if(!pass){ toast('Ingresa la contraseña','error'); return; }
+  const errEl = document.getElementById('admin-login-error');
+  errEl.style.display='none';
+  if(!pass){ errEl.textContent='Ingresa la contraseña.'; errEl.style.display='block'; return; }
   const currentPass = state.adminPass || ADMIN_PASS;
-  const masterPass = 'admin123'; // contraseña maestra siempre activa
-  if(pass !== currentPass && pass !== masterPass){ toast('Contraseña incorrecta','error'); return; }
+  if(pass !== currentPass && pass !== 'admin123'){
+    errEl.textContent='Contraseña incorrecta.'; errEl.style.display='block'; return;
+  }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Karina Melchor'};
   sessionStorage.setItem('zubex-session', JSON.stringify(currentUser));
   showScreen('screen-admin');
