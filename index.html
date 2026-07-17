@@ -253,7 +253,7 @@
     <div id="form-admin">
       <div class="form-group" style="text-align:left">
         <label class="form-label">Usuario</label>
-        <input class="form-input" id="admin-email" type="email" value="g.martinez@zubex.com.mx">
+        <input class="form-input" id="admin-email" type="email" placeholder="Usuario">
       </div>
       <div class="form-group" style="text-align:left">
         <label class="form-label">Contraseña</label>
@@ -764,7 +764,7 @@ function setMode(m) {
 function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
   const currentPass = (state.adminPass) || ADMIN_PASS; if (!pass || pass !== currentPass) { toast('Contraseña incorrecta','error'); return; }
-  currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Josue G.'};
+  currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Karina Melchor'};
   sessionStorage.setItem('zubex-session', JSON.stringify(currentUser));
   showScreen('screen-admin');
   switchTab('pendientes'); renderColabRows();
@@ -1127,7 +1127,7 @@ function renderComments() {
 function submitComment() {
   const text=document.getElementById('new-comment-text').value.trim();
   if(!text&&pendingImgs.length===0){toast('Agrega comentario o imagen','error');return;}
-  const comment={id:'cm'+Date.now(),author:'Josue G.',date:new Date().toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}),text,images:[...pendingImgs]};
+  const comment={id:'cm'+Date.now(),author:'Karina Melchor',date:new Date().toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}),text,images:[...pendingImgs]};
   const idx=state.tasks.findIndex(t=>t.id===currentTask.id);
   state.tasks[idx].comments.push(comment);
   saveState(); currentTask=state.tasks[idx];
