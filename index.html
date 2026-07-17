@@ -791,8 +791,7 @@ let entryMode = 'admin';
 function logout() {
   currentUser = null;
   sessionStorage.removeItem('zubex-session');
-  document.getElementById('admin-pass').value = '';
-  showScreen('screen-entry');
+  window.location.href = window.location.href.split('?')[0];
 }
 
 function togglePass(id, btn){
@@ -846,7 +845,6 @@ function loginColab(){
   const col = (state.collaborators||[]).find(c=>c.user===user && c.pass===pass);
   if(!col){err.textContent='Usuario o contraseña incorrectos.';err.style.display='block';return;}
   currentUser={role:'colab',name:col.name,email:col.email||'',id:col.id};
-  sessionStorage.setItem('zubex-session',JSON.stringify({role:'colab',name:col.name,email:col.email||'',id:col.id}));
   finishColabLogin(col);
 }
 
@@ -1637,12 +1635,6 @@ document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>
   await initFirestore();
   // Hide loading screen
   document.getElementById('screen-loading').style.display='none';
-
-  // Clear session if this is a fresh navigation (not a reload)
-  const navType = performance.getEntriesByType('navigation')[0]?.type;
-  if(navType === 'navigate'){
-    sessionStorage.removeItem('zubex-session');
-  }
 
   const saved = sessionStorage.getItem('zubex-session');
   if(saved){
