@@ -788,6 +788,12 @@ async function initFirestore(){
 // ════════════════════════════════════════
 let entryMode = 'admin';
 
+function logoutColab() {
+  currentUser = null; currentTask = null;
+  sessionStorage.removeItem('zubex-session');
+  window.location.href = window.location.href.split('?')[0];
+}
+
 function logout() {
   currentUser = null;
   sessionStorage.removeItem('zubex-session');
