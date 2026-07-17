@@ -253,7 +253,7 @@
     <div id="form-admin">
       <div class="form-group" style="text-align:left">
         <label class="form-label">Usuario</label>
-        <input class="form-input" id="admin-email" type="email" placeholder="Usuario">
+        <input class="form-input" id="admin-email" type="text" placeholder="Usuario" autocomplete="username">
       </div>
       <div class="form-group" style="text-align:left">
         <label class="form-label">Contraseña</label>
@@ -265,32 +265,16 @@
 
     <!-- COLAB -->
     <div id="form-colab" style="display:none">
-      <!-- PASO 1: código -->
-      <div id="colab-step1">
-        <div style="background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.15);border-radius:12px;padding:14px 16px;margin-bottom:18px;text-align:left">
-          <p style="font-size:.83rem;color:var(--muted);line-height:1.6">Ingresa el <strong style="color:var(--text)">código de acceso</strong> que te compartió el administrador.</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Código de acceso</label>
-          <div class="code-input-group">
-            <input id="colab-code-input" maxlength="8" placeholder="Ej: ZBX-A3F2" onkeydown="if(event.key==='Enter')validarCodigo()" oninput="this.value=this.value.toUpperCase();document.getElementById('colab-error').style.display='none';document.getElementById('colab-code-input').style.borderColor=''">
-            <button class="btn btn-primary" style="border-radius:0 7px 7px 0;padding:0 18px" onclick="validarCodigo()">Siguiente →</button>
-          </div>
-        </div>
-        <div id="colab-error" style="display:none;color:var(--red);font-size:.8rem;margin-top:6px;text-align:left"></div>
+      <div class="form-group" style="text-align:left">
+        <label class="form-label">Usuario</label>
+        <input class="form-input" id="colab-user-input" placeholder="Tu usuario" onkeydown="if(event.key==='Enter')loginColab()">
       </div>
-      <!-- PASO 2: seleccionar quién eres -->
-      <div id="colab-step2" style="display:none">
-        <div style="text-align:left;margin-bottom:16px">
-          <div style="font-size:.82rem;color:var(--accent);margin-bottom:4px">✓ Código válido</div>
-          <div style="font-weight:600;font-size:.95rem" id="colab-task-preview"></div>
-        </div>
-        <div class="form-group" style="text-align:left">
-          <label class="form-label">¿Quién eres?</label>
-          <div id="colab-name-chips" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="resetColabStep()">← Cambiar código</button>
+      <div class="form-group" style="text-align:left">
+        <label class="form-label">Contraseña</label>
+        <input class="form-input" id="colab-pass-input" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginColab()">
       </div>
+      <div id="colab-error" style="display:none;color:var(--red);font-size:.8rem;margin-bottom:10px;text-align:left"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="loginColab()">Entrar</button>
     </div>
   </div>
 </div>
@@ -389,45 +373,85 @@
     <div class="logo">Zubex<span>·</span></div>
     <div style="display:flex;align-items:center;gap:10px">
       <div class="avatar" id="colab-avatar" style="width:28px;height:28px;font-size:.7rem"></div>
-      <span style="font-size:.88rem" id="colab-name-display"></span>
+      <span style="font-size:.88rem;font-weight:500" id="colab-name-display"></span>
       <button class="btn btn-ghost btn-sm" onclick="logoutColab()" style="margin-left:6px">Salir ↩</button>
     </div>
   </div>
-  <div class="colab-container">
-    <div class="colab-badge">🔗 Acceso de colaborador · Solo este pendiente</div>
-    <div class="section-title" id="cv-title"></div>
-    <p style="color:var(--muted);font-size:.86rem;margin:6px 0 20px" id="cv-meta"></p>
-
-    <div class="progress-section">
-      <div class="progress-label"><span>Progreso actual</span><span class="progress-pct" id="cv-pct">0%</span></div>
-      <div class="progress-bar"><div class="progress-fill" id="cv-fill" style="width:0%"></div></div>
+  <div class="view active" id="colab-main-view">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchColabTab('mis-pendientes')">📋 Mis Pendientes</button>
+      <button class="nav-tab" onclick="switchColabTab('mi-calendario')">📅 Mi Calendario</button>
     </div>
 
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
-      <div class="form-label">Descripción</div>
-      <div id="cv-desc" style="font-size:.86rem;color:var(--muted);line-height:1.6"></div>
-    </div>
-
-    <div class="divider"></div>
-    <h4 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:13px">Comentarios y Actualizaciones</h4>
-    <div class="comment-list" id="cv-comments"></div>
-
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:17px">
-      <div style="font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:14px">📝 Publicar actualización</div>
-      <div class="form-group">
-        <label class="form-label">Comentario / avance</label>
-        <textarea class="form-textarea" id="cv-comment" placeholder="Describe el avance, problema o nota..."></textarea>
+    <!-- MIS PENDIENTES -->
+    <div id="colab-tab-pendientes">
+      <div class="section-title" style="margin-bottom:6px">Mis Pendientes</div>
+      <p class="section-sub">Pendientes asignados a ti</p>
+      <!-- STATS COLAB -->
+      <div class="stats-grid" id="colab-stats" style="margin-bottom:24px"></div>
+      <!-- LISTA -->
+      <div class="card" id="colab-tasks-list">
+        <div class="task-row head"><span>Pendiente</span><span>Prioridad</span><span>Vencimiento</span><span>Progreso</span><span>Estatus</span><span></span></div>
+        <div id="colab-task-rows"></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Imágenes (opcional)</label>
-        <div class="upload-zone" id="cv-upload-zone" onclick="document.getElementById('cv-img-input').click()" ondragover="ev(event,'cv-upload-zone')" ondrop="df(event)">
-          <input type="file" id="cv-img-input" accept="image/*" multiple onchange="handleImgs2(this.files)">
-          📎 Arrastra imágenes o haz clic aquí
+    </div>
+
+    <!-- MI CALENDARIO -->
+    <div id="colab-tab-calendario" style="display:none">
+      <div class="section-title" style="margin-bottom:6px">Mi Calendario</div>
+      <p class="section-sub">Fechas de vencimiento de tus pendientes</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <button class="btn btn-ghost" onclick="colabCalNav(-1)">← Anterior</button>
+        <div id="colab-cal-label" style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#0a2d6e"></div>
+        <button class="btn btn-ghost" onclick="colabCalNav(1)">Siguiente →</button>
+      </div>
+      <div class="card"><div id="colab-cal-grid"></div></div>
+      <div id="colab-cal-panel" style="display:none;margin-top:16px">
+        <div class="card">
+          <div class="card-head"><h3 id="colab-cal-day-title">Pendientes del día</h3></div>
+          <div id="colab-cal-day-events" style="padding:14px 20px"></div>
         </div>
-        <div class="img-preview-grid" id="cv-img-previews"></div>
       </div>
-      <div style="display:flex;justify-content:flex-end">
-        <button class="btn btn-primary" onclick="submitColabComment()">Publicar ↗</button>
+    </div>
+  </div>
+
+  <!-- VISTA DETALLE PENDIENTE (colab) -->
+  <div id="colab-detail-view" style="display:none">
+    <div style="padding:16px 28px;border-bottom:1px solid var(--border)">
+      <button class="btn btn-ghost btn-sm" onclick="backToColabList()">← Volver a mis pendientes</button>
+    </div>
+    <div class="colab-container">
+      <div class="colab-badge" id="cv-priority-badge">📋 Pendiente</div>
+      <div class="section-title" id="cv-title"></div>
+      <p style="color:var(--muted);font-size:.86rem;margin:6px 0 20px" id="cv-meta"></p>
+      <div class="progress-section">
+        <div class="progress-label"><span>Progreso actual</span><span class="progress-pct" id="cv-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="cv-fill" style="width:0%"></div></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
+        <div class="form-label">Descripción</div>
+        <div id="cv-desc" style="font-size:.86rem;color:var(--muted);line-height:1.6"></div>
+      </div>
+      <div class="divider"></div>
+      <h4 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:13px">Comentarios y Actualizaciones</h4>
+      <div class="comment-list" id="cv-comments"></div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:17px">
+        <div style="font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:14px">📝 Publicar actualización</div>
+        <div class="form-group">
+          <label class="form-label">Comentario / avance</label>
+          <textarea class="form-textarea" id="cv-comment" placeholder="Describe el avance, problema o nota..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Imágenes (opcional)</label>
+          <div class="upload-zone" id="cv-upload-zone" onclick="document.getElementById('cv-img-input').click()" ondragover="ev(event,'cv-upload-zone')" ondrop="df(event)">
+            <input type="file" id="cv-img-input" accept="image/*" multiple onchange="handleImgs2(this.files)">
+            📎 Arrastra imágenes o haz clic aquí
+          </div>
+          <div class="img-preview-grid" id="cv-img-previews"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn btn-primary" onclick="submitColabComment()">Publicar ↗</button>
+        </div>
       </div>
     </div>
   </div>
@@ -525,8 +549,12 @@
       <button class="close-btn" onclick="closeModal('modal-colab')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="nc-name" placeholder="Nombre completo"></div>
-      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="nc-email" type="email" placeholder="colaborador@zubex.com.mx"></div>
+      <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="nc-name" placeholder="Ej: Carlos Ruiz"></div>
+      <div class="form-group"><label class="form-label">Correo (opcional)</label><input class="form-input" id="nc-email" type="email" placeholder="colaborador@zubex.com.mx"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Usuario *</label><input class="form-input" id="nc-user" placeholder="Ej: cruiz"></div>
+        <div class="form-group"><label class="form-label">Contraseña *</label><input class="form-input" id="nc-pass" type="password" placeholder="Mínimo 4 caracteres"></div>
+      </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
         <button class="btn btn-ghost" onclick="closeModal('modal-colab')">Cancelar</button>
         <button class="btn btn-primary" onclick="saveColab()">Guardar</button>
@@ -693,7 +721,7 @@ function loadLocalState(){
 }
 
 async function initFirestore(){
-  const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+  const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),3000));
   try {
     const lsub=document.getElementById('loading-sub'); if(lsub) lsub.textContent='Conectando con Firebase...';
     // Read current state
@@ -763,129 +791,175 @@ function setMode(m) {
 
 function loginAdmin() {
   const pass = document.getElementById('admin-pass').value;
-  const currentPass = (state.adminPass) || ADMIN_PASS; if (!pass || pass !== currentPass) { toast('Contraseña incorrecta','error'); return; }
+  if(!pass){ toast('Ingresa la contraseña','error'); return; }
+  const currentPass = state.adminPass || ADMIN_PASS;
+  if(pass !== currentPass){ toast('Contraseña incorrecta','error'); return; }
   currentUser = {role:'admin', email:ADMIN_EMAIL, name:'Karina Melchor'};
   sessionStorage.setItem('zubex-session', JSON.stringify(currentUser));
   showScreen('screen-admin');
   switchTab('pendientes'); renderColabRows();
 }
 
-function validarCodigo() {
-  const code = document.getElementById('colab-code-input').value.trim().toUpperCase();
-  const errEl = document.getElementById('colab-error');
-  if (!code) { errEl.textContent='Ingresa el código.'; errEl.style.display='block'; return; }
-  const task = state.tasks.find(t => t.code === code);
-  if (!task) {
-    errEl.textContent='Código inválido. Verifica con el administrador.';
-    errEl.style.display='block';
-    document.getElementById('colab-code-input').style.borderColor='var(--red)';
-    return;
-  }
-  // Mostrar paso 2
-  document.getElementById('colab-step1').style.display='none';
-  document.getElementById('colab-step2').style.display='block';
-  document.getElementById('colab-task-preview').textContent=task.name;
-
-  // Chips de colaboradores asignados + opción libre
-  const assigned = (task.collabs||[]).map(id=>state.collaborators.find(c=>c.id===id)).filter(Boolean);
-  const chips = document.getElementById('colab-name-chips');
-  chips.innerHTML = assigned.map(c=>`
-    <button class="btn btn-ghost" style="justify-content:flex-start;gap:10px" onclick="loginColabAs('${task.code}','${c.name}','${c.email}')">
-      <div class="avatar" style="width:28px;height:28px;font-size:.7rem;flex-shrink:0">${ini(c.name)}</div>
-      <span>${c.name}</span>
-      <span style="color:var(--muted);font-size:.78rem;margin-left:auto">${c.email}</span>
-    </button>`).join('');
-  // Opción: soy otra persona
-  chips.innerHTML += `
-    <div id="other-name-row" style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:4px">
-      <input class="form-input" id="other-name-input" placeholder="Otro nombre..." style="border:none;border-radius:0" onkeydown="if(event.key==='Enter')loginColabOther('${task.code}')">
-      <button class="btn btn-ghost" style="border:none;border-left:1px solid var(--border);border-radius:0;padding:0 14px;white-space:nowrap" onclick="loginColabOther('${task.code}')">Entrar →</button>
-    </div>`;
+function loginColab(){
+  const user = document.getElementById('colab-user-input').value.trim().toLowerCase();
+  const pass = document.getElementById('colab-pass-input').value;
+  const err  = document.getElementById('colab-error');
+  err.style.display='none';
+  if(!user||!pass){err.textContent='Ingresa usuario y contraseña.';err.style.display='block';return;}
+  const col = (state.collaborators||[]).find(c=>c.user===user && c.pass===pass);
+  if(!col){err.textContent='Usuario o contraseña incorrectos.';err.style.display='block';return;}
+  currentUser={role:'colab',name:col.name,email:col.email||'',id:col.id};
+  sessionStorage.setItem('zubex-session',JSON.stringify({role:'colab',name:col.name,email:col.email||'',id:col.id}));
+  finishColabLogin(col);
 }
 
-function loginColabAs(code, name, email) {
-  const task = state.tasks.find(t => t.code === code);
-  currentTask = task;
-  currentUser = {role:'colab', name, email};
-  sessionStorage.setItem('zubex-session', JSON.stringify({role:'colab',name,email,taskCode:task.code}));
-  finishColabLogin(task, name);
-}
-
-function loginColabOther(code) {
-  const name = document.getElementById('other-name-input').value.trim();
-  if (!name) { toast('Escribe tu nombre','error'); return; }
-  const task = state.tasks.find(t => t.code === code);
-  currentTask = task;
-  currentUser = {role:'colab', name, email:''};
-  finishColabLogin(task, name);
-}
-
-function finishColabLogin(task, name) {
+function finishColabLogin(col){
   showScreen('screen-colab');
-  document.getElementById('colab-name-display').textContent = name;
-  document.getElementById('colab-avatar').textContent = ini(name);
-  loadColabView(task);
+  document.getElementById('colab-name-display').textContent = col.name;
+  document.getElementById('colab-avatar').textContent = ini(col.name);
+  switchColabTab('mis-pendientes');
 }
 
-function logoutColab() {
-  currentUser = null; currentTask = null;
-  sessionStorage.removeItem('zubex-session');
-  resetColabStep();
-  showScreen('screen-entry');
-  setMode('colab');
-}
-
-function resetColabStep() {
-  document.getElementById('colab-step1').style.display='block';
-  document.getElementById('colab-step2').style.display='none';
-  document.getElementById('colab-code-input').value='';
-  document.getElementById('colab-error').style.display='none';
-}
-
-function logout() {
-  currentUser = null;
-  sessionStorage.removeItem('zubex-session');
-  showScreen('screen-entry');
-  document.getElementById('admin-pass').value = '';
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.remove('active');
-    s.style.display = 'none';
+function switchColabTab(tab){
+  ['mis-pendientes','mi-calendario'].forEach(t=>{
+    const el=document.getElementById('colab-tab-'+(t==='mis-pendientes'?'pendientes':'calendario'));
+    if(el) el.style.display=t===tab?'block':'none';
   });
-  const el = document.getElementById(id);
-  el.style.display = id === 'screen-entry' ? 'flex' : 'block';
-  el.classList.add('active');
+  document.querySelectorAll('#screen-colab .nav-tab').forEach((b,i)=>{
+    b.classList.toggle('active',['mis-pendientes','mi-calendario'][i]===tab);
+  });
+  document.getElementById('colab-main-view').style.display='block';
+  document.getElementById('colab-detail-view').style.display='none';
+  if(tab==='mis-pendientes') renderColabTaskList();
+  if(tab==='mi-calendario') renderColabCalendar();
 }
 
-// ════════════════════════════════════════
-// COLAB VIEW
-// ════════════════════════════════════════
-function loadColabView(task) {
-  document.getElementById('cv-title').textContent = task.name;
-  document.getElementById('cv-meta').textContent = `Vencimiento: ${task.due||'Sin fecha'} · Prioridad: ${task.priority}`;
-  document.getElementById('cv-desc').textContent = task.desc || 'Sin descripción.';
-  document.getElementById('cv-pct').textContent = task.progress+'%';
-  document.getElementById('cv-fill').style.width = task.progress+'%';
-  renderColabComments(task);
+function renderColabTaskList(){
+  const myTasks = (state.tasks||[]).filter(t=>(t.collabs||[]).includes(currentUser.id));
+  // Stats
+  const total=myTasks.length;
+  const comp=myTasks.filter(t=>t.status==='completado').length;
+  const proc=myTasks.filter(t=>t.status==='en-proceso').length;
+  const riesg=myTasks.filter(t=>t.status==='en-riesgo').length;
+  document.getElementById('colab-stats').innerHTML=`
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-num">${total}</div><div class="stat-label"><span class="stat-dot"></span>Asignados</div></div>
+    <div class="stat-card" style="--c:var(--green)"><div class="stat-num">${comp}</div><div class="stat-label"><span class="stat-dot"></span>Completados</div></div>
+    <div class="stat-card" style="--c:var(--yellow)"><div class="stat-num">${proc}</div><div class="stat-label"><span class="stat-dot"></span>En Proceso</div></div>
+    <div class="stat-card" style="--c:var(--red)"><div class="stat-num">${riesg}</div><div class="stat-label"><span class="stat-dot"></span>En Riesgo</div></div>`;
+  const rows=document.getElementById('colab-task-rows');
+  if(!myTasks.length){rows.innerHTML='<div style="padding:22px;text-align:center;color:var(--muted)">No tienes pendientes asignados.</div>';return;}
+  // Sort by priority: alta > media > baja
+  const priOrder={alta:0,media:1,baja:2};
+  const sorted=[...myTasks].sort((a,b)=>(priOrder[a.priority]||1)-(priOrder[b.priority]||1));
+  rows.innerHTML=sorted.map(t=>`
+    <div class="task-row" onclick="openColabTask('${t.id}')">
+      <div class="task-title">${t.name}<small>${t.desc?t.desc.slice(0,50)+'…':''}</small></div>
+      <div>${priIcon(t.priority)} <span style="font-size:.8rem">${t.priority}</span></div>
+      <div style="font-size:.8rem;color:var(--muted)">${t.due||'—'}</div>
+      <div><div style="font-size:.75rem;color:var(--muted);margin-bottom:3px">${t.progress}%</div><div class="mini-bar"><div class="mini-bar-fill" style="width:${t.progress}%;background:${pColor(t.progress)}"></div></div></div>
+      <div>${sBadge(t.status)}</div>
+      <div><button class="btn btn-ghost btn-sm">Ver →</button></div>
+    </div>`).join('');
 }
 
-function renderColabComments(task) {
-  const list = document.getElementById('cv-comments');
-  if (!task.comments||!task.comments.length) {
-    list.innerHTML='<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:14px 0">Sin comentarios aún. ¡Sé el primero!</div>';
-    return;
+function openColabTask(id){
+  const t=(state.tasks||[]).find(x=>x.id===id);
+  if(!t) return;
+  currentTask=t;
+  pendingImgs2=[];
+  document.getElementById('cv-img-previews').innerHTML='';
+  document.getElementById('cv-comment').value='';
+  document.getElementById('cv-title').textContent=t.name;
+  document.getElementById('cv-meta').textContent='Vencimiento: '+(t.due||'Sin fecha')+' · Prioridad: '+t.priority;
+  document.getElementById('cv-desc').textContent=t.desc||'Sin descripción.';
+  document.getElementById('cv-pct').textContent=t.progress+'%';
+  document.getElementById('cv-fill').style.width=t.progress+'%';
+  const badge=document.getElementById('cv-priority-badge');
+  const pmap={alta:'🔴 Alta prioridad',media:'🟡 Media prioridad',baja:'🟢 Baja prioridad'};
+  badge.textContent=pmap[t.priority]||'📋 Pendiente';
+  document.getElementById('colab-main-view').style.display='none';
+  document.getElementById('colab-detail-view').style.display='block';
+  renderColabComments(t);
+}
+
+function backToColabList(){
+  document.getElementById('colab-detail-view').style.display='none';
+  document.getElementById('colab-main-view').style.display='block';
+  renderColabTaskList();
+}
+
+function loadColabView(col){ finishColabLogin(col); }
+
+let colabCalDate = new Date();
+function colabCalNav(dir){
+  colabCalDate=new Date(colabCalDate.getFullYear(),colabCalDate.getMonth()+dir,1);
+  renderColabCalendar();
+}
+
+function renderColabCalendar(){
+  const myTasks=(state.tasks||[]).filter(t=>(t.collabs||[]).includes(currentUser.id));
+  const today=new Date();
+  const yr=colabCalDate.getFullYear(), mo=colabCalDate.getMonth();
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('colab-cal-label').textContent=months[mo]+' '+yr;
+  const firstDay=new Date(yr,mo,1).getDay();
+  const daysInMonth=new Date(yr,mo+1,0).getDate();
+  const daysInPrev=new Date(yr,mo,0).getDate();
+  const totalCells=Math.ceil((firstDay+daysInMonth)/7)*7;
+  let html='<div class="cal-weekdays">';
+  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d=>{html+=`<div class="cal-wday">${d}</div>`;});
+  html+='</div><div class="cal-cells">';
+  for(let i=0;i<totalCells;i++){
+    let day,thisMonth=true,cellDate;
+    if(i<firstDay){day=daysInPrev-(firstDay-1-i);thisMonth=false;cellDate=new Date(yr,mo-1,day);}
+    else if(i>=firstDay+daysInMonth){day=i-firstDay-daysInMonth+1;thisMonth=false;cellDate=new Date(yr,mo+1,day);}
+    else{day=i-firstDay+1;cellDate=new Date(yr,mo,day);}
+    const dateStr=cellDate.toISOString().slice(0,10);
+    const isToday=dateStr===today.toISOString().slice(0,10);
+    const tasksOnDay=myTasks.filter(t=>t.due===dateStr);
+    let cls='cal-cell'+(isToday?' today':'')+(thisMonth?'':' other-month');
+    let chips=tasksOnDay.slice(0,2).map(t=>{
+      const cc=t.status==='completado'?'comp':t.status==='en-riesgo'?'risk':'pte';
+      return `<div class="cal-chip ${cc}" title="${t.name}">${t.name}</div>`;
+    }).join('');
+    if(tasksOnDay.length>2) chips+=`<div class="cal-more">+${tasksOnDay.length-2} más</div>`;
+    html+=`<div class="${cls}" onclick="colabCalDayClick('${dateStr}')"><div class="cal-day-num">${day}</div>${chips}</div>`;
   }
-  list.innerHTML = task.comments.map(c=>`
+  html+='</div>';
+  document.getElementById('colab-cal-grid').innerHTML=html;
+}
+
+function colabCalDayClick(dateStr){
+  const myTasks=(state.tasks||[]).filter(t=>(t.collabs||[]).includes(currentUser.id)&&t.due===dateStr);
+  const panel=document.getElementById('colab-cal-panel');
+  const d=new Date(dateStr+'T12:00:00');
+  document.getElementById('colab-cal-day-title').textContent=d.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  if(!myTasks.length){
+    document.getElementById('colab-cal-day-events').innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:8px 0">Sin pendientes este día.</div>';
+  } else {
+    document.getElementById('colab-cal-day-events').innerHTML=myTasks.map(t=>`
+      <div class="evt-item">
+        <div class="evt-dot" style="background:${t.status==='completado'?'#00b87a':t.status==='en-riesgo'?'#e08800':'#0055dd'}"></div>
+        <div class="evt-body"><div class="evt-title">${t.name}</div><div class="evt-sub">${t.priority} prioridad · ${t.progress}% completado</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="openColabTask('${t.id}')">Ver →</button>
+      </div>`).join('');
+  }
+  panel.style.display='block';
+}
+
+function renderColabComments(task){
+  const list=document.getElementById('cv-comments');
+  const comments=normalizeArr(task.comments);
+  if(!comments.length){list.innerHTML='<div style="color:var(--muted);font-size:.83rem;text-align:center;padding:14px 0">Sin comentarios aún. ¡Sé el primero!</div>';return;}
+  list.innerHTML=comments.map(cm=>`
     <div class="comment-item">
       <div class="comment-meta">
-        <div class="comment-avatar">${ini(c.author)}</div>
-        <span class="comment-user">${c.author}</span>
-        <span class="comment-date">${c.date}</span>
+        <div class="comment-avatar">${ini(cm.author)}</div>
+        <span class="comment-user">${cm.author}</span>
+        <span class="comment-date">${cm.date}</span>
       </div>
-      <div class="comment-text">${c.text}</div>
-      ${(c.images||[]).map(img=>`<img class="comment-img" src="${img}" onclick="openLB('${img}')" alt="img">`).join('')}
+      <div class="comment-text">${cm.text}</div>
+      ${normalizeArr(cm.images).map(img=>`<img class="comment-img" src="${img}" onclick="openLB('${img}')" alt="img">`).join('')}
     </div>`).join('');
 }
 
@@ -1189,7 +1263,10 @@ function renderColabRows(){
     const n=state.tasks.filter(t=>(t.collabs||[]).includes(c.id)).length;
     return `<div style="display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--border)">
       <div class="avatar" style="width:36px;height:36px;font-size:.8rem">${ini(c.name)}</div>
-      <div style="flex:1"><div style="font-weight:500">${c.name}</div><div style="font-size:.78rem;color:var(--muted)">${c.email}</div></div>
+      <div style="flex:1">
+        <div style="font-weight:500">${c.name}</div>
+        <div style="font-size:.78rem;color:var(--muted)">Usuario: <strong>${c.user||'—'}</strong>${c.email?' · '+c.email:''}</div>
+      </div>
       <span class="badge gris">${n} pendiente${n!==1?'s':''}</span>
       <button class="btn btn-danger btn-sm" onclick="delColab('${c.id}')">🗑</button>
     </div>`;
@@ -1197,13 +1274,18 @@ function renderColabRows(){
 }
 function openNewColab(){document.getElementById('modal-colab').classList.add('open');}
 function saveColab(){
-  const name=document.getElementById('nc-name').value.trim();
-  const email=document.getElementById('nc-email').value.trim();
-  if(!name||!email){toast('Completa nombre y correo','error');return;}
-  state.collaborators.push({id:'c'+Date.now(),name,email});
+  const name = document.getElementById('nc-name').value.trim();
+  const email= document.getElementById('nc-email').value.trim();
+  const user = document.getElementById('nc-user').value.trim().toLowerCase();
+  const pass = document.getElementById('nc-pass').value;
+  if(!name||!user||!pass){toast('Nombre, usuario y contraseña son requeridos','error');return;}
+  if(pass.length<4){toast('La contraseña debe tener al menos 4 caracteres','error');return;}
+  const exists = state.collaborators.find(c=>c.user===user);
+  if(exists){toast('Ese nombre de usuario ya existe','error');return;}
+  state.collaborators.push({id:'c'+Date.now(),name,email,user,pass});
   saveState(); closeModal('modal-colab'); renderColabRows();
-  ['nc-name','nc-email'].forEach(id=>document.getElementById(id).value='');
-  toast(`${name} agregado ✓`);
+  ['nc-name','nc-email','nc-user','nc-pass'].forEach(id=>document.getElementById(id).value='');
+  toast(name+' agregado ✓');
 }
 function delColab(id){
   if(!confirm('¿Eliminar colaborador?')) return;
@@ -1485,15 +1567,14 @@ document.querySelectorAll('.overlay').forEach(o=>{o.addEventListener('click',e=>
         currentUser = s;
         showScreen('screen-admin');
         switchTab('pendientes'); renderColabRows();
-      } else if(s.role==='colab' && s.taskCode){
-        const task = (state.tasks||[]).find(t=>t.code===s.taskCode);
-        if(task){
-          currentUser = s;
-          currentTask = task;
+      } else if(s.role==='colab' && s.id){
+        const col=(state.collaborators||[]).find(c=>c.id===s.id);
+        if(col){
+          currentUser=s;
           showScreen('screen-colab');
-          document.getElementById('colab-name-display').textContent = s.name;
-          document.getElementById('colab-avatar').textContent = ini(s.name);
-          loadColabView(task);
+          document.getElementById('colab-name-display').textContent=s.name;
+          document.getElementById('colab-avatar').textContent=ini(s.name);
+          finishColabLogin(col);
         } else { showScreen('screen-entry'); }
       } else { showScreen('screen-entry'); }
     } catch(e){ showScreen('screen-entry'); }
