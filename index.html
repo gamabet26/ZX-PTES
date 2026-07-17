@@ -788,6 +788,13 @@ async function initFirestore(){
 // ════════════════════════════════════════
 let entryMode = 'admin';
 
+function logout() {
+  currentUser = null;
+  sessionStorage.removeItem('zubex-session');
+  document.getElementById('admin-pass').value = '';
+  showScreen('screen-entry');
+}
+
 function togglePass(id, btn){
   const inp = document.getElementById(id);
   if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
